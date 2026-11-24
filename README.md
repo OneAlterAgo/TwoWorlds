@@ -1,1 +1,1 @@
-Two Worlds 0.6 — experimental temple prototype. Upload index.html and game.js to main. Sound starts after first tap. WebRTC direct connection may require TURN. Runtime not tested.
+Two Worlds 0.7 — temple prototype with two crystal trials. Sound starts after the first tap. WebRTC direct connections may require TURN.
