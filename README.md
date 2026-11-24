@@ -1,1 +1,1 @@
-Two Worlds 0.5 — экспериментальная физическая сборка. Замените index.html и game.js. Rapier и Three.js загружаются с CDN. Сетевой режим WebRTC сохранён; проверка на устройствах необходима. Художественные GLB-модели пока не включены.
+Two Worlds 0.6 — experimental temple prototype. Upload index.html and game.js to main. Sound starts after first tap. WebRTC direct connection may require TURN. Runtime not tested.
