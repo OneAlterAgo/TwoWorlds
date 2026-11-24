@@ -1,1 +1,1 @@
-Two Worlds 0.7 — temple prototype with two crystal trials. Sound starts after the first tap. WebRTC direct connections may require TURN.
+Two Worlds 0.8 — The Turning Bridge. Kai turns the bridge sections, Lumi locks the full crossing from the far bank. Solo players can switch heroes and use the relay on the middle landing. WebRTC direct connections may require TURN.
