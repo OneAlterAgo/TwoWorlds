@@ -3,23 +3,11 @@ import * as T from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.modul
 import { buildTempleArt, templeTexture } from './temple-art.js';
 import { createOpticalCourt } from './optics.js';
 import { moveAvatar } from './avatar-motion.js';
-
-function makeSocket(channelName){
- let pc,dc,role=0,remote=null,local=null,handlers={},ready=false;
- const msg=t=>document.getElementById('msg').textContent=t;
- const el=id=>document.getElementById(id);
- const fail=e=>msg('Ошибка: '+e.message);
- const pack=o=>btoa(JSON.stringify(o)); const unpack=s=>JSON.parse(atob(s.trim()));
- function setup(r){if(pc)pc.close();role=r;ready=false;remote=null;local=null;pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]});pc.onconnectionstatechange=()=>{if(['failed','closed','disconnected'].includes(pc.connectionState)){if(ready){ready=false;handlers.disconnect?.();}msg('Соединение потеряно или недоступно. Попробуйте другую сеть или TURN.');}};pc.ondatachannel=e=>wire(e.channel);}
- function wire(c){if(c.label!==channelName){c.close();msg('Оба игрока должны открыть одну и ту же сцену.');return;}dc=c;c.onopen=()=>{ready=true;enter('P2P');};c.onclose=()=>{if(ready){ready=false;handlers.disconnect?.();}};c.onmessage=e=>{try{const p=JSON.parse(e.data);if(![p.x,p.y,p.z].every(Number.isFinite))return;remote={...p,slot:1-role};publish();}catch{}};}
- function publish(){const s={};if(local)s.self=local;if(remote)s.peer=remote;handlers.state?.(s);}
- async function gather(){if(pc.iceGatheringState==='complete')return;await new Promise(resolve=>{let timer=setTimeout(done,12000);function done(){clearTimeout(timer);pc.removeEventListener('icegatheringstatechange',check);resolve();}function check(){if(pc.iceGatheringState==='complete')done();}pc.addEventListener('icegatheringstatechange',check);});}
- return {on:(n,f)=>handlers[n]=f,emit:(n,v,cb)=>{if(n==='enter'){local={slot:role,x:role?1:-1,y:0,z:0};cb({id:'self',slot:role,code:'P2P'});publish();}if(n==='move'){local={...v,slot:role};if(dc?.readyState==='open'&&dc.bufferedAmount<65536)dc.send(JSON.stringify(v));publish();}},offer:async()=>{try{setup(0);wire(pc.createDataChannel(channelName,{ordered:false,maxRetransmits:0}));await pc.setLocalDescription(await pc.createOffer());msg('Собираем код…');await gather();el('out').value=pack(pc.localDescription.toJSON());msg('Отправьте исходящий код второму игроку. Затем вставьте его ответ и нажмите Завершить.');}catch(e){fail(e);}},answer:async()=>{try{setup(1);await pc.setRemoteDescription(unpack(el('code').value));await pc.setLocalDescription(await pc.createAnswer());msg('Собираем ответ…');await gather();el('out').value=pack(pc.localDescription.toJSON());msg('Отправьте исходящий код первому игроку. Ожидаем соединения.');}catch(e){fail(e);}},finish:async()=>{try{if(!pc||role!==0)throw Error('Сначала создайте приглашение');await pc.setRemoteDescription(unpack(el('code').value));msg('Подключаемся…');}catch(e){fail(e);}}};
-}
+import { createRoomSocket } from './rooms.js?v=rooms1';
 
 await R.init();
 const isSpillway = document.body.dataset.trial === 'spillway';
-const $=id=>document.getElementById(id),socket=makeSocket(isSpillway ? 'two-worlds-spillway' : 'game'),scene=new T.Scene();
+const $=id=>document.getElementById(id),socket=createRoomSocket(isSpillway ? 'spillway' : 'reflections'),scene=new T.Scene();
 scene.background=new T.Color(0xa3b9a7);scene.fog=new T.FogExp2(0xa3b9a7,.021);
 const camera=new T.PerspectiveCamera(62,innerWidth/innerHeight,.15,160),renderer=new T.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.03;document.body.prepend(renderer.domElement);scene.add(new T.HemisphereLight(0xcceadb,0x384751,1.52));const sun=new T.DirectionalLight(0xffd5a1,2.8);sun.position.set(-17,24,6);scene.add(sun,sun.target);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);Object.assign(sun.shadow.camera,{left:-18,right:18,top:18,bottom:-18,near:1,far:65});sun.shadow.bias=-.0005;sun.shadow.normalBias=.055;
 const mats=new Map();function mat(c){if(!mats.has(c))mats.set(c,new T.MeshStandardMaterial({color:c,flatShading:true,roughness:.85}));return mats.get(c)}function mesh(g,c,x,y,z,parent=scene,shadow=true){const m=new T.Mesh(g,mat(c));m.position.set(x,y,z);m.castShadow=shadow;m.receiveShadow=shadow;parent.add(m);return m}function box(w,h,d,c,x,y,z,parent=scene){return mesh(new T.BoxGeometry(w,h,d),c,x,y,z,parent)}
@@ -403,52 +391,64 @@ const parkedFace = [0, 0], playerCheckpoints = [start, start];
 const keys = new Set();
 let jumpReq = false, powerReq = false, swapReq = false, returnReq = false;
 
-function enter(mode) {
-  socket.emit('enter', mode, result => {
-    me = result.id;
-    slot = result.slot;
-    solo = mode === 'SOLO';
-    state = {};
-    parked[0].set(-1, .04, 2);
-    parked[1].set(1, .04, 2);
-    parkedFace.fill(0);
-    playerCheckpoints.fill(start);
-    pos.copy(parked[slot]);
-    body.setTranslation({ x: pos.x, y: pos.y + .84, z: pos.z }, true);
-    vel.set(0, 0, 0);
-    checkpoint = start;
-    trial.reset();
-    actionCount.fill(0);
-    for (const avatar of avatars) {
-      avatar.userData.motion.action = 0;
-      avatar.userData.motion.gesture = 0;
-    }
-    won = false;
-    jumps = dash = cd = 0;
-    ground = true;
-    $('menu').style.display = 'none';
-    $('controls').style.display = 'block';
-    $('swap').style.display = solo ? 'block' : 'none';
-  });
+function enter(mode, role = 0) {
+  me = 'self';
+  slot = role;
+  solo = mode === 'SOLO';
+  state = {};
+  parked[0].set(-1, .04, 2);
+  parked[1].set(1, .04, 2);
+  parkedFace.fill(0);
+  playerCheckpoints.fill(start);
+  pos.copy(parked[slot]);
+  body.setTranslation({ x: pos.x, y: pos.y + .84, z: pos.z }, true);
+  vel.set(0, 0, 0);
+  checkpoint = start;
+  trial.reset();
+  actionCount.fill(0);
+  for (const avatar of avatars) {
+    avatar.userData.motion.action = 0;
+    avatar.userData.motion.gesture = 0;
+  }
+  won = false;
+  jumps = dash = cd = 0;
+  ground = true;
+  $('menu').style.display = 'none';
+  $('controls').style.display = 'block';
+  $('swap').style.display = solo ? 'block' : 'none';
 }
-$('solo').onclick = () => enter('SOLO');
-$('create').onclick = () => socket.offer();
-$('join').onclick = () => socket.answer();
-$('finish').onclick = () => socket.finish();
+$('solo').onclick = () => { socket.leave(); enter('SOLO'); };
+$('create').onclick = () => socket.host();
+$('join').onclick = () => socket.join($('code').value);
+$('cancel-room').onclick = () => socket.leave();
+$('code').addEventListener('input', event => { event.target.value = event.target.value.toUpperCase(); });
+$('code').addEventListener('keydown', event => {
+  if (event.key === 'Enter' && !$('join').disabled) socket.join(event.target.value);
+});
 $('copy').onclick = async () => {
+  const code = $('out').textContent;
   try {
-    await navigator.clipboard.writeText($('out').value);
-    $('msg').textContent = 'Код скопирован';
+    await navigator.clipboard.writeText(code);
+    $('msg').textContent = 'Код скопирован. Отправь его другу.';
   } catch {
-    $('out').select();
+    $('msg').textContent = 'Код комнаты — ' + code;
   }
 };
-socket.on('state', next => { state = next; });
+socket.on('status', ({ text, code, phase }) => {
+  $('msg').textContent = text;
+  $('out').textContent = code;
+  $('room-code').hidden = !code;
+  $('cancel-room').hidden = phase === 'idle';
+  for (const id of ['create', 'join', 'code']) $(id).disabled = phase !== 'idle';
+});
+socket.on('connected', role => enter('COOP', role));
+socket.on('state', peer => { state = { peer }; });
 socket.on('disconnect', () => {
   me = null;
+  $('coop-menu').open = true;
   $('menu').style.display = 'grid';
   $('controls').style.display = 'none';
-  $('msg').textContent = 'Связь потеряна';
+  avatars.forEach(avatar => { avatar.visible = false; });
 });
 
 function frameContext(peer) {
@@ -538,8 +538,8 @@ if (peer) {
   other.position.copy(parked[1 - slot]);
   moveAvatar(other, dt, phase, { face: parkedFace[1 - slot], speed: 0, air: false, rise: 0, action: actionCount[1 - slot] });
 }
-if (!solo && now - send > 50) {
-  socket.emit('move', {
+if (!solo && now - send > 80) {
+  socket.send({
     x: pos.x, y: pos.y, z: pos.z, face, speed, air: !ground, rise: vel.y, action: actionCount[slot],
     ...trial.state(frameContext(peer)),
   });
