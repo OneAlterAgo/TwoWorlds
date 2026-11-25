@@ -128,7 +128,7 @@ export function createRoomSocket(scene) {
     const session = { role, sent: 0, received: 0, guest: role === 1 ? hex(crypto.getRandomValues(new Uint8Array(16))) : '' };
     active = session;
     report(role === 0 ? 'Создаём комнату…' : 'Ищем комнату…', '', 'joining');
-    session.timer = setTimeout(() => fail(session, serverError), 12000);
+    session.timer = setTimeout(() => fail(session, serverError), 15000);
     try {
       library ??= import(libraryUrl).catch(error => { library = undefined; throw error; });
       const [mqtt, room] = await Promise.all([library, prepareRoom(scene, code)]);
@@ -136,16 +136,19 @@ export function createRoomSocket(scene) {
       Object.assign(session, room);
       session.inbox = session.topic + (role === 0 ? '/host' : '/guest/' + session.guest);
       const { connect } = mqtt.default ?? mqtt;
-      const client = connect(broker, { protocolVersion: 4, reconnectPeriod: 0, connectTimeout: 8000 });
+      const client = connect(broker, { protocolVersion: 4, reconnectPeriod: 1200, connectTimeout: 4500 });
       session.client = client;
       client.on('message', (topic, bytes) => { void receive(session, topic, bytes); });
-      client.on('error', () => fail(session, serverError));
-      client.once('close', () => fail(session, session.connected ? 'Связь с сервером прервалась. Создай комнату заново.' : serverError));
-      client.once('connect', async () => {
+      client.on('close', () => {
+        if (session.subscribed) fail(session, 'Связь с сервером прервалась. Создай комнату заново.');
+      });
+      client.on('connect', async () => {
+        const attempt = session.attempt = (session.attempt ?? 0) + 1;
         try {
           const [grant] = await client.subscribeAsync(session.inbox, { qos: 1 });
+          if (active !== session || attempt !== session.attempt || !client.connected) return;
           if (grant?.qos !== 1) throw new Error('Room subscription rejected');
-          if (active !== session) return;
+          session.subscribed = true;
           clearTimeout(session.timer);
           if (role === 0) {
             report('Отправь код другу и оставь страницу открытой.', code, 'waiting');
@@ -156,7 +159,7 @@ export function createRoomSocket(scene) {
           session.interval = setInterval(request, 1500);
           session.timer = setTimeout(() => fail(session, 'Комната не найдена или занята. Проверь код и откройте одну и ту же сцену.'), 9000);
         } catch {
-          fail(session, serverError);
+          if (attempt === session.attempt && client.connected) fail(session, serverError);
         }
       });
     } catch {

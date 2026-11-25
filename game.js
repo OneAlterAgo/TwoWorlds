@@ -3,7 +3,7 @@ import * as T from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.modul
 import { buildTempleArt, templeTexture } from './temple-art.js';
 import { createOpticalCourt } from './optics.js';
 import { moveAvatar } from './avatar-motion.js';
-import { createRoomSocket } from './rooms.js?v=rooms1';
+import { createRoomSocket } from './rooms.js?v=rooms2';
 
 await R.init();
 const isSpillway = document.body.dataset.trial === 'spillway';
