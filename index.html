@@ -3,18 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Two Worlds — Забытый механизм</title>
-  <link rel="stylesheet" href="./game.css">
+  <title>Two Worlds — Водосброс</title>
+  <link rel="stylesheet" href="./game.css?v=spillway2">
 </head>
-<body>
+<body data-trial="spillway">
   <main id="menu">
     <section class="launch-panel" aria-labelledby="title">
-      <p class="chapter">Глава 1 · Забытый механизм</p>
+      <p class="chapter">Демонстрационная сцена</p>
       <h1 id="title">Two Worlds</h1>
-      <h2>Поворотный мост</h2>
-      <p class="scene-description">Перейди мост и направь лучи к приёмникам в зале отражений.</p>
+      <h2>Водосброс</h2>
+      <p class="scene-description">Кай двигает подъёмник, Люми фиксирует его и создаёт ступени. В кооперативе у каждого свой герой.</p>
       <div class="menu-actions">
-        <button id="solo">Играть одному</button>
+        <button id="solo">Попробовать одному</button>
         <details id="coop-menu">
           <summary>Играть вдвоём</summary>
           <div class="connection">
@@ -26,6 +26,7 @@
             <textarea id="out" readonly aria-label="Исходящий код" placeholder="Исходящий код"></textarea>
           </div>
         </details>
+        <a class="scene-switch" href="./reflections.html">Открыть «Зал отражений»</a>
       </div>
       <p id="msg" role="status"></p>
     </section>
@@ -34,7 +35,7 @@
     <section class="objective-panel" aria-label="Текущая цель">
       <div class="objective-heading">
         <strong id="hero"></strong>
-        <span class="chapter-name" id="section-title">Поворотный мост</span>
+        <span class="chapter-name" id="section-title">Водосброс</span>
       </div>
       <p id="hud"></p>
       <div class="bridge-state" aria-label="Состояние испытания">
@@ -45,6 +46,7 @@
     </section>
     <div class="view-actions">
       <div id="status"></div>
+      <button id="reset-position" class="return-button" aria-label="Вернуть героя к контрольной точке">↺</button>
       <button id="full" aria-label="Во весь экран">⛶</button>
     </div>
     <div id="pad"><div id="knob"></div></div>
@@ -54,8 +56,9 @@
       <button id="jump">Прыжок</button>
     </div>
   </div>
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"}}</script>
   <script type="module">
-    import('./game.js?v=09').catch(error => {
+    import('./game.js?v=spillway2').catch(error => {
       document.getElementById('msg').textContent = 'Ошибка загрузки: ' + error.message;
     });
   </script>

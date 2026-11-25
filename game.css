@@ -32,6 +32,8 @@ h1 { font: 400 clamp(3.1rem, 7.2vw, 6.75rem)/.94 Georgia, serif; margin: .16em 0
 .launch-panel h2 { margin: 0 0 .32em; font: 400 clamp(1.18rem, 2.7vw, 1.7rem)/1.15 Georgia, serif; }
 .scene-description { max-width: 28ch; margin: .6em 0 1.3em; color: #e2e8d5; }
 .menu-actions { display: grid; gap: .52rem; }
+.scene-switch { justify-self: center; color: #e2e8d5; font-size: .83rem; text-underline-offset: .2em; }
+.scene-switch:focus-visible { outline: 2px solid var(--mint); outline-offset: 3px; }
 #menu button, #menu summary {
   text-align: center;
   border: 1px solid #c5bd9666;

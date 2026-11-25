@@ -2,64 +2,9 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="0; url=./?v=spillway2">
   <title>Two Worlds — Водосброс</title>
-  <link rel="stylesheet" href="./game.css?v=spillway1">
 </head>
-<body data-trial="spillway">
-  <main id="menu">
-    <section class="launch-panel" aria-labelledby="title">
-      <p class="chapter">Демонстрационная сцена</p>
-      <h1 id="title">Two Worlds</h1>
-      <h2>Водосброс</h2>
-      <p class="scene-description">Кай двигает подъёмник, Люми фиксирует его и создаёт ступени. В кооперативе у каждого свой герой.</p>
-      <div class="menu-actions">
-        <button id="solo">Попробовать одному</button>
-        <details id="coop-menu">
-          <summary>Играть вдвоём</summary>
-          <div class="connection">
-            <button id="create">Создать приглашение</button>
-            <button id="join">Ответить на приглашение</button>
-            <textarea id="code" aria-label="Полученный код" placeholder="Полученный код"></textarea>
-            <button id="finish">Завершить подключение</button>
-            <button id="copy">Копировать код</button>
-            <textarea id="out" readonly aria-label="Исходящий код" placeholder="Исходящий код"></textarea>
-          </div>
-        </details>
-      </div>
-      <p id="msg" role="status"></p>
-    </section>
-  </main>
-  <div id="controls" style="display: none">
-    <section class="objective-panel" aria-label="Текущая цель">
-      <div class="objective-heading">
-        <strong id="hero"></strong>
-        <span class="chapter-name" id="section-title">Водосброс</span>
-      </div>
-      <p id="hud"></p>
-      <div class="bridge-state" aria-label="Состояние испытания">
-        <span id="section-one">Секция 1</span>
-        <span id="section-two">Секция 2</span>
-        <span id="seal">Печать</span>
-      </div>
-    </section>
-    <div class="view-actions">
-      <div id="status"></div>
-      <button id="reset-position" class="return-button" aria-label="Вернуть героя к контрольной точке">↺</button>
-      <button id="full" aria-label="Во весь экран">⛶</button>
-    </div>
-    <div id="pad"><div id="knob"></div></div>
-    <div class="actions">
-      <button id="swap">Сменить героя</button>
-      <button id="power">Рывок</button>
-      <button id="jump">Прыжок</button>
-    </div>
-  </div>
-  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"}}</script>
-  <script type="module">
-    import('./game.js?v=spillway1').catch(error => {
-      document.getElementById('msg').textContent = 'Ошибка загрузки: ' + error.message;
-    });
-  </script>
-</body>
+<body><a href="./?v=spillway2">Играть в «Водосброс»</a></body>
 </html>
