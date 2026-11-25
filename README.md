@@ -1,1 +1,1 @@
-Two Worlds 0.8 — The Turning Bridge. Kai turns the bridge sections, Lumi locks the full crossing from the far bank. Solo players can switch heroes and use the relay on the middle landing. WebRTC direct connections may require TURN.
+Two Worlds 0.9 — The Hall of Reflections. After crossing the turning bridge, Kai changes the beam’s color and Lumi directs it to the matching receivers. Activate both receivers in either order to open the portal. Solo players can switch heroes. WebRTC direct connections may require TURN.
