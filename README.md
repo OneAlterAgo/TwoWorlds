@@ -1,5 +1,7 @@
-Two Worlds 0.9 — The Hall of Reflections. After crossing the turning bridge, Kai changes the beam’s color and Lumi directs it to the matching receivers. Activate both receivers in either order to open the portal. Solo players can switch heroes. WebRTC direct connections may require TURN.
+Two Worlds 0.9 — The Hall of Reflections. After crossing the turning bridge, Kai changes the beam’s color and Lumi directs it to the matching receivers. Activate both receivers in either order to open the portal. Solo players can switch heroes.
 
 The home page opens the Spillway trial. Earlier `spillway.html` links forward to the home page, and the Hall of Reflections is available from the menu or at `reflections.html`. Kai controls the lift from the copper rail. Lumi brakes it at the jade mark and summons steps from the upper landing. Kai holds the gate while Lumi reaches its latch. Solo mode keeps both characters in the level when switching. On keyboard, use WASD to move, Space to jump, E for an ability, Q to switch, and R to return to a checkpoint.
+
+To play together, both players open the same scene. One creates a room and shares its six-character code. The other enters that code and joins. The demo relays encrypted game state through the [EMQX public test broker](https://www.emqx.com/en/mqtt/public-mqtt5-broker) over a secure WebSocket. Run local copies on `localhost` or serve them over HTTPS for room encryption.
 
 Spillway environment assets: [Castle Kit by Kenney](https://kenney.nl/assets/castle-kit) (GLB repackaged by [Hidencod](https://github.com/Hidencod/tge-assets)) and [Rock 01 by Poly Haven](https://polyhaven.com/a/rock_01) (color map resized to 512 px). Both asset sources are CC0.

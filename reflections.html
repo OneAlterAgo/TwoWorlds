@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Two Worlds — Забытый механизм</title>
-  <link rel="stylesheet" href="./game.css?v=2">
+  <link rel="stylesheet" href="./game.css?v=rooms1">
 </head>
 <body>
   <main id="menu">
@@ -18,15 +18,18 @@
         <details id="coop-menu">
           <summary>Играть вдвоём</summary>
           <div class="connection">
-            <button id="create">Создать приглашение</button>
-            <button id="join">Ответить на приглашение</button>
-            <textarea id="code" aria-label="Полученный код" placeholder="Полученный код"></textarea>
-            <button id="finish">Завершить подключение</button>
-            <button id="copy">Копировать код</button>
-            <textarea id="out" readonly aria-label="Исходящий код" placeholder="Исходящий код"></textarea>
+            <button class="create-room" id="create">Создать комнату</button>
+            <div class="room-code" id="room-code" hidden>
+              <output id="out" aria-label="Код твоей комнаты"></output>
+              <button id="copy">Копировать</button>
+            </div>
+            <label class="join-label" for="code">Код комнаты друга</label>
+            <input id="code" type="text" maxlength="6" placeholder="ABC234" autocomplete="off" autocapitalize="characters" spellcheck="false">
+            <button id="join">Войти</button>
+            <button class="cancel-room" id="cancel-room" hidden>Отмена</button>
           </div>
         </details>
-        <a class="scene-switch" href="./?v=spillway2">Открыть «Водосброс»</a>
+        <a class="scene-switch" href="./?v=rooms1">Открыть «Водосброс»</a>
       </div>
       <p id="msg" role="status"></p>
     </section>
@@ -56,7 +59,7 @@
     </div>
   </div>
   <script type="module">
-    import('./game.js?v=09').catch(error => {
+    import('./game.js?v=rooms1').catch(error => {
       document.getElementById('msg').textContent = 'Ошибка загрузки: ' + error.message;
     });
   </script>

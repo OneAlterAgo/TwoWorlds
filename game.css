@@ -11,9 +11,9 @@
 *, *::before, *::after { box-sizing: border-box; }
 body { margin: 0; overflow: hidden; touch-action: none; }
 canvas { display: block; touch-action: none; }
-button, textarea, summary { font: inherit; }
+button, input, summary { font: inherit; }
 button, summary { cursor: pointer; }
-button:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 2px solid var(--mint); outline-offset: 4px; }
+button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--mint); outline-offset: 4px; }
 
 #menu {
   position: fixed;
@@ -46,21 +46,26 @@ h1 { font: 400 clamp(3.1rem, 7.2vw, 6.75rem)/.94 Georgia, serif; margin: .16em 0
 #menu #solo { background: var(--gold); color: var(--ink); border-color: transparent; }
 #menu #solo:hover { background: #f5cc96; }
 #menu details[open] summary { margin-bottom: .55rem; }
-.connection { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; }
+.connection { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .4rem; }
 .connection button { padding: .48em .45em; font-size: .83rem; }
-.connection textarea {
-  grid-column: 1 / -1;
+.connection button:disabled { cursor: default; opacity: .55; }
+.connection .create-room, .connection .cancel-room, .join-label { grid-column: 1 / -1; }
+.join-label { color: #e1e7d5; font-size: .8rem; margin-top: .28rem; }
+.connection input {
   width: 100%;
   min-height: 2.6rem;
   padding: .52em .66em;
-  resize: vertical;
   border: 1px solid #9fb6a06b;
   border-radius: 6px;
   background: #122923;
   color: #ecf2e1;
-  font-size: .84rem;
+  font: 700 1rem ui-monospace, monospace;
+  letter-spacing: .17em;
   touch-action: auto;
 }
+.room-code { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: .45rem .56rem; border: 1px solid #d8bd7c85; border-radius: 6px; background: #172e28; }
+.room-code[hidden] { display: none; }
+#out { color: var(--gold); font: 700 1.24rem ui-monospace, monospace; letter-spacing: .18em; user-select: all; }
 #msg { margin: .52rem 0 0; color: #ffd29b; font-size: .85rem; }
 #msg:empty { display: none; }
 
