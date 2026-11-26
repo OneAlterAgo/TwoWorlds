@@ -64,6 +64,14 @@ export function buildSpillwayRoute({ T, scene, box, mesh, floor, collider, sound
 
   function relay({ kai, lumi, barrier, name, texts }) {
     const [x, y, z, width] = barrier;
+    const travel = 3.35, grateHeight = 5;
+    const frameHeight = travel + grateHeight + .35;
+    for (const side of [-1, 1]) {
+      const edge = x + side * (width / 2 + .18);
+      solid(.54, frameHeight, .69, bankColor, edge, y + frameHeight / 2, z);
+      box(.19, frameHeight - .22, .38, 0x9a7653, edge - side * .22, y + frameHeight / 2, z);
+    }
+    solid(width + .93, .36, .72, 0x8d6b4d, x, y + frameHeight - .12, z);
     // One solid grate matches the collision hull even as it moves.
     const grid = new T.Group();
     grid.position.set(x, y, z);
@@ -94,7 +102,7 @@ export function buildSpillwayRoute({ T, scene, box, mesh, floor, collider, sound
           if (!armed && !opened) ready = false;
         }
         if (opened && !wasOpen) sound(392, .42, 'triangle', .12);
-        grid.position.y = T.MathUtils.damp(grid.position.y, opened ? y + 5.3 : y, 7, dt);
+        grid.position.y = T.MathUtils.damp(grid.position.y, opened ? y + travel : y, 7, dt);
         gate.setTranslation({ x, y: grid.position.y + 2.5, z });
         amber.light.rotation.y += dt * (armed || opened ? 5 : 1.2);
         jade.light.rotation.y += dt * (ready || opened ? 5 : 1.2);

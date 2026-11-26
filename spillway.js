@@ -1,4 +1,4 @@
-import { buildSpillwayRoute } from './spillway-route.js?v=spillway3';
+import { buildSpillwayRoute } from './spillway-route.js?v=spillway4';
 import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js';
 
 const lip = 5.05, mark = .75, liftStart = -7.19, liftTravel = 16;
@@ -49,7 +49,6 @@ export function createSpillway({ T, R, scene, world, box, mesh, floor, collider,
     scene.add(overlay);
   }
 
-  const cameraObstacles = [];
   const loader = new GLTFLoader();
   const bounds = new T.Box3(), size = new T.Vector3(), center = new T.Vector3();
   function decorate(model, point, height, name) {
@@ -63,7 +62,6 @@ export function createSpillway({ T, R, scene, world, box, mesh, floor, collider,
     prop.traverse(part => { if (part.isMesh) part.castShadow = part.receiveShadow = true; });
     scene.add(prop);
     prop.updateMatrixWorld(true);
-    if (name === 'spillway-model-arch') cameraObstacles.push(prop);
   }
   loader.load(asset('wall-pillar.glb'), ({ scene: model }) => {
     for (const [x, y, z] of [[-2.6, 0, -5.15], [2.6, 0, -5.15], [-5.95, lip, -29.2], [5.95, lip, -29.2]]) {
@@ -72,9 +70,6 @@ export function createSpillway({ T, R, scene, world, box, mesh, floor, collider,
       collider(x, y + 1.475, z, size.x * scale, 2.95, size.z * scale);
     }
   }, undefined, error => console.warn('Spillway pillar failed to load', error));
-  loader.load(asset('wall-doorway.glb'), ({ scene: model }) => {
-    decorate(model, { x: 0, y: gateY, z: -58.9 }, 4.05, 'spillway-model-arch');
-  }, undefined, error => console.warn('Spillway arch failed to load', error));
 
   const water = new T.Mesh(new T.PlaneGeometry(78, 114), new T.MeshStandardMaterial({ color: 0x24665f, roughness: .51 }));
   water.position.set(0, -8.3, -18);
@@ -101,17 +96,48 @@ export function createSpillway({ T, R, scene, world, box, mesh, floor, collider,
 
   for (const x of [-6.49, -4.60]) box(.073, .046, 13.38, bronze, x, .031, -10.53);
   for (const z of [-6, -8.5, -11, -13.75, -16.25]) box(1.9, .047, .13, z === -13.75 ? jade : bronze, -5.55, .034, z);
-  for (const x of [-1.74, 1.74]) box(.11, .11, 17.65, bronze, x, 3.33, -15.25).rotation.x = -.42;
-  const weight = mesh(new T.CylinderGeometry(.45, .51, .74, 8), bronze, -4.62, .62, -4);
-  const weightBand = new T.Mesh(new T.TorusGeometry(.47, .056, 8, 24), new T.MeshBasicMaterial({ color: 0xf1b574 }));
-  weightBand.rotation.x = Math.PI / 2;
-  weight.add(weightBand);
+
+  const counterweightX = -3.15;
+  for (const side of [-1, 1]) box(.10, .17, 14.15, 0x474c42, counterweightX + side * .35, -.34, -10.5);
+  for (const z of [-4.2, -7.15, -10.1, -13.05, -16.85]) box(1.45, .22, .20, 0x56675a, -3.85, -.41, z);
+  const weight = new T.Group();
+  weight.name = 'spillway-counterweight';
+  weight.position.set(counterweightX, -.12, -4);
+  scene.add(weight);
+  box(.78, .16, .86, 0x5b4a3d, 0, -.07, 0, weight);
+  box(.65, .28, .66, bronze, 0, .08, 0, weight);
+  const weightLamp = box(.27, .039, .33, 0xf1b574, 0, .24, 0, weight);
+  weightLamp.material = weightLamp.material.clone();
+  weightLamp.material.emissiveIntensity = .38;
+
+  const guideRise = 2.25;
+  const guideLength = Math.hypot(liftTop(1), liftTravel);
+  const guideAngle = Math.atan2(liftTop(1), liftTravel);
+  for (const side of [-1, 1]) {
+    const x = side * 1.60;
+    box(.14, .15, guideLength, bronze, x, liftTop(.5) + guideRise, liftZ(.5)).rotation.x = guideAngle;
+  }
+  for (const progress of [0, 1]) {
+    const y = liftTop(progress) + guideRise, z = liftZ(progress);
+    box(4.12, .21, .30, 0x75634e, 0, y + .015, z);
+    for (const side of [-1, 1]) {
+      const foot = progress ? lip - .12 : -8.3;
+      const width = progress ? .32 : .47;
+      box(width, y - foot, .45, stone, side * 2.08, (y + foot) / 2, z);
+      collider(side * 2.08, (y + foot) / 2, z, width, y - foot, .45);
+    }
+  }
 
   const cabin = new T.Group();
+  cabin.name = 'spillway-lift';
   scene.add(cabin);
   box(3.34, .40, 2.34, stone, 0, -.2, 0, cabin);
   box(3.27, .045, 2.28, 0x907357, 0, .025, 0, cabin);
   for (const x of [-1.56, 1.56]) box(.13, .08, 2.31, bronze, x, .065, 0, cabin);
+  for (const x of [-1.60, 1.60]) {
+    box(.095, guideRise, .10, 0xa78965, x, guideRise / 2, 0, cabin);
+    box(.25, .21, .29, 0x5b4a3d, x, guideRise, 0, cabin);
+  }
   const cabinPlate = box(1.04, .07, .8, jade, 0, .055, 0, cabin);
   cabinPlate.material = cabinPlate.material.clone();
   const cabinBody = world.createRigidBody(R.RigidBodyDesc.kinematicPositionBased().setTranslation(0, -.2, liftStart));
@@ -147,13 +173,24 @@ export function createSpillway({ T, R, scene, world, box, mesh, floor, collider,
   for (const side of [-1, 1]) {
     box(4.46, 4.62, .82, stone, side * 4.22, gateY + 2.31, gateZ);
     collider(side * 4.22, gateY + 2.31, gateZ, 4.46, 4.62, .82);
-    box(1.12, 4.35, 8.26, stone, side * 2.64, gateY + 2.175, -54.8);
-    collider(side * 2.64, gateY + 2.175, -54.8, 1.12, 4.35, 8.26);
+    box(1.12, 4.35, 7.73, stone, side * 2.62, gateY + 2.175, -54.94);
+    collider(side * 2.62, gateY + 2.175, -54.94, 1.12, 4.35, 7.73);
   }
-  box(4.1, .64, .62, bronze, 0, gateY + 4.35, gateZ);
+  const chamberRoof = { y: gateY + 4.43, z: -54.94, w: 5.68, h: .38, d: 7.73 };
+  box(chamberRoof.w, chamberRoof.h, chamberRoof.d, stone, 0, chamberRoof.y, chamberRoof.z);
+  collider(0, chamberRoof.y, chamberRoof.z, chamberRoof.w, chamberRoof.h, chamberRoof.d);
+  box(4.2, 4.40, .35, 0x46574e, 0, gateY + 2.2, -58.51);
+  collider(0, gateY + 2.2, -58.51, 4.2, 4.4, .35);
+  box(4.16, .72, .68, bronze, 0, gateY + 4.02, gateZ);
+  collider(0, gateY + 4.02, gateZ, 4.16, .72, .68);
   const gate = new T.Group();
   gate.position.set(0, gateY, gateZ);
   scene.add(gate);
+  for (const side of [-1, 1]) {
+    box(.14, 7.78, .16, 0x97744a, side * 1.87, gateY + 3.89, gateZ - .12);
+    box(.28, 2.72, .30, stone, side * 1.66, gateY + 1.36, exitZ + .03);
+  }
+  box(3.92, .22, .38, bronze, 0, gateY + 7.71, gateZ);
   for (let bar = -4; bar <= 4; bar++) box(.125, 3.68, .24, bronze, bar * .43, 1.84, 0, gate);
   for (const y of [.48, 2.65]) box(3.72, .20, .27, stone, 0, y, 0, gate);
   const obstruction = collider(0, gateY + 1.84, gateZ, 3.72, 3.68, .34);
@@ -238,11 +275,11 @@ export function createSpillway({ T, R, scene, world, box, mesh, floor, collider,
       other.y += liftTop(progress) - liftTop(previous);
       other.z += liftZ(progress) - liftZ(previous);
     }
-    const railZ = grip && onRail(kai) ? T.MathUtils.clamp(kai.z, -17, -4) : -4 - 13 * progress;
-    weight.position.z = T.MathUtils.damp(weight.position.z, railZ, 8, dt);
+    weight.position.z = -4 - 13 * progress;
     const atStop = atMark(progress) || brake;
     if (atStop && !lampActive) sound(560, .20, 'sine', .11);
     lampActive = atStop;
+    weightLamp.material.emissive.setHex(atStop ? jade : 0xf1b574);
     cabinPlate.material.color.setHex(atStop ? jade : 0xb8995b);
     setStairs(stairsTime > 0);
     for (const step of stones) if (stairsVisible) step.surface.material.emissiveIntensity = stairsTime > 6 ? .67 : .38 + .35 * Math.sin(time * 14);
@@ -320,7 +357,7 @@ export function createSpillway({ T, R, scene, world, box, mesh, floor, collider,
   }
 
   return {
-    start, checkpoints, update, reset, interact, status, cameraObstacles,
+    start, checkpoints, update, reset, interact, status,
     canDash: ({ role, pos }) => role === 0 && !onRail(pos),
     checkpoint: point => point === route.exit ? gateCaught : point === route.gateBase ? galleryRelay.opened : point.y === lip ? brake : point !== rail && point !== launch || intake.opened,
     supportsRider(pos) { return onDeck(pos, progress, .085) && pos.y > liftTop(progress) - .03; },

@@ -260,7 +260,7 @@ function createBridgeTrial() {
 }
 
 const trial = isSpillway
-  ? (await import('./spillway.js?v=spillway3')).createSpillway({ T, R, scene, world, box, mesh, floor, collider, sound })
+  ? (await import('./spillway.js?v=spillway4')).createSpillway({ T, R, scene, world, box, mesh, floor, collider, sound })
   : createBridgeTrial();
 const { start, checkpoints } = trial;
 
@@ -423,7 +423,6 @@ const parked = [new T.Vector3(), new T.Vector3()];
 const parkedFace = [0, 0], playerCheckpoints = [start, start];
 const keys = new Set();
 let jumpTime = 0, coyoteTime = 0, cameraDistance = 6.5;
-const propCameraRay = new T.Raycaster();
 let jumpReq = false, powerReq = false, swapReq = false, returnReq = false;
 
 function teleportPlayer() {
@@ -774,12 +773,6 @@ function tick(now) {
       const from = target.clone().addScaledVector(shoulder, side);
       const hit = world.castRay(new R.Ray(from, direction), clearance, true, undefined, undefined, capsule, body);
       if (hit) clearance = Math.min(clearance, Math.max(.22, hit.timeOfImpact - .23));
-      if (trial.cameraObstacles?.length) {
-        propCameraRay.set(from, direction);
-        propCameraRay.far = clearance;
-        const [prop] = propCameraRay.intersectObjects(trial.cameraObstacles, true);
-        if (prop) clearance = Math.min(clearance, Math.max(.22, prop.distance - .23));
-      }
     }
     cameraDistance = Math.min(clearance, T.MathUtils.damp(cameraDistance, clearance, 5, dt));
     camera.position.copy(target).addScaledVector(direction, cameraDistance);
