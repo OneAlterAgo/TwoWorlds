@@ -47,7 +47,24 @@ export function buildSpillwayRoute({ T, scene, box, mesh, floor, collider, sound
   solid(1.7, 1.22, .86, 0x567a73, 3.1, .61, -.5);
   for (const x of [8, 12, 16]) solid(.50, 3.9, .50, 0x60766a, x, lip + 1.95, -23.12);
   solid(.4, 3.9, 10.85, 0x536b61, 18.24, lip + 1.95, -31.7);
-  solid(15.6, 1.18, .36, 0x728674, 9.5, lip + .59, -38.53);
+  // The gate is the only opening in the wall above the lower landing.
+  const galleryWallZ = -38.95;
+  const waterline = -8.3, foundationTop = lip - .18;
+  solid(30.9, foundationTop - waterline, .54, 0x485c51, 3.25, (foundationTop + waterline) / 2, galleryWallZ);
+  for (const [left, right] of [[-12.2, -2.04], [2.04, 18.7]]) {
+    const width = right - left, x = (left + right) / 2;
+    const base = low - .7, height = lip + 5.25 - base;
+    solid(width, height, .64, 0x52685e, x, base + height / 2, galleryWallZ);
+    box(width + .12, .16, .79, 0x987a5a, x, lip + 5.25, galleryWallZ);
+    for (let post = left + .72; post < right; post += 2.8) {
+      box(.26, height - .24, .8, 0x65796b, post, base + height / 2, galleryWallZ);
+    }
+    for (let support = left + .9; support < right; support += 5.1) {
+      const length = base - waterline + .25;
+      box(.90, length, 1.15, 0x536b61, support, waterline + length / 2, galleryWallZ);
+      box(1.22, .39, 1.45, 0x627367, support, base - .16, galleryWallZ);
+    }
+  }
   for (const side of [-1, 1]) {
     solid(.26, 1.04, 1.89, 0x778874, side * 1.9, lip + .52, -39.40);
     solid(.22, 1.04, 2.45, 0x778874, side * 4.85, low + .52, -47.67);

@@ -7,7 +7,7 @@ import { createRoomSocket } from './rooms.js?v=rooms2';
 
 await R.init();
 const isSpillway = document.body.dataset.trial === 'spillway';
-const $=id=>document.getElementById(id),socket=createRoomSocket(isSpillway ? 'spillway3' : 'reflections'),scene=new T.Scene();
+const $=id=>document.getElementById(id),socket=createRoomSocket(isSpillway ? 'spillway5' : 'reflections'),scene=new T.Scene();
 scene.background=new T.Color(0xa3b9a7);scene.fog=new T.FogExp2(0xa3b9a7,.021);
 const camera=new T.PerspectiveCamera(62,innerWidth/innerHeight,.15,160),renderer=new T.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.03;document.body.prepend(renderer.domElement);scene.add(new T.HemisphereLight(0xcceadb,0x384751,1.52));const sun=new T.DirectionalLight(0xffd5a1,2.8);sun.position.set(-17,24,6);scene.add(sun,sun.target);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);Object.assign(sun.shadow.camera,{left:-18,right:18,top:18,bottom:-18,near:1,far:65});sun.shadow.bias=-.0005;sun.shadow.normalBias=.055;
 const mats=new Map();function mat(c){if(!mats.has(c))mats.set(c,new T.MeshStandardMaterial({color:c,flatShading:true,roughness:.85}));return mats.get(c)}function mesh(g,c,x,y,z,parent=scene,shadow=true){const m=new T.Mesh(g,mat(c));m.position.set(x,y,z);m.castShadow=shadow;m.receiveShadow=shadow;parent.add(m);return m}function box(w,h,d,c,x,y,z,parent=scene){return mesh(new T.BoxGeometry(w,h,d),c,x,y,z,parent)}
@@ -260,7 +260,7 @@ function createBridgeTrial() {
 }
 
 const trial = isSpillway
-  ? (await import('./spillway.js?v=spillway4')).createSpillway({ T, R, scene, world, box, mesh, floor, collider, sound })
+  ? (await import('./spillway.js?v=spillway5')).createSpillway({ T, R, scene, world, box, mesh, floor, collider, sound })
   : createBridgeTrial();
 const { start, checkpoints } = trial;
 

@@ -1,4 +1,4 @@
-import { buildSpillwayRoute } from './spillway-route.js?v=spillway4';
+import { buildSpillwayRoute } from './spillway-route.js?v=spillway5';
 import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js';
 
 const lip = 5.05, mark = .75, liftStart = -7.19, liftTravel = 16;
@@ -26,7 +26,7 @@ export function createSpillway({ T, R, scene, world, box, mesh, floor, collider,
   floor(0, 0, 0, 14, 12, stone);
   const rail = floor(-5.55, 0, -11.9, 2.8, 12.03, stone);
   const launch = floor(-8.4, 0, -16.38, 3.13, 2.86, stone);
-  const landing = floor(0, lip, -25.25, 13.1, 9.8, stone);
+  const landing = floor(0, lip, -26.135, 13.1, 8.03, stone);
   const courtyard = { x: 0, y: 0, z: .4, w: 14, d: 11.2, safeZ: 2.7 };
   const checkpoints = [...route.floors, courtyard, rail, launch, landing];
 
@@ -156,8 +156,65 @@ export function createSpillway({ T, R, scene, world, box, mesh, floor, collider,
   }
   const beacons = [pedestal(rune, jade), pedestal(winch, bronze), pedestal(catchPoint, jade)];
 
+  const upperGateZ = -22.02, upperGateHeight = 5.0, upperGateTravel = 2.95;
+  const upperGrate = new T.Group();
+  upperGrate.name = 'spillway-upper-grate';
+  upperGrate.position.set(0, lip, upperGateZ);
+  scene.add(upperGrate);
+  for (let bar = -4; bar <= 4; bar++) box(.11, upperGateHeight, .15, bronze, bar * .43, upperGateHeight / 2, 0, upperGrate);
+  for (const y of [.14, 1.45, 3.3, 4.9]) box(4.03, .14, .25, 0x9a7751, 0, y, 0, upperGrate);
+  const upperBarrier = collider(0, lip + upperGateHeight / 2, upperGateZ, 4.03, upperGateHeight, .25);
+  const dockSignal = new T.MeshBasicMaterial({ color: 0xeead61 });
+  for (const side of [-1, 1]) {
+    solidWall(4.62, upperGateHeight, .56, side * 4.30, lip + upperGateHeight / 2, upperGateZ);
+    solidWall(.56, upperGateHeight, 1.28, side * 6.34, lip + upperGateHeight / 2, -22.39);
+    solidWall(.30, upperGateHeight + upperGateTravel + .1, .47, side * 2.11, lip + (upperGateHeight + upperGateTravel + .1) / 2, upperGateZ);
+    box(.53, lip + 8.3, .67, stone, side * 6.34, (lip - 8.3) / 2, -22.39);
+    box(.46, .22, .39, bronze, side * 2.11, lip + 1.13, upperGateZ + .33).material = dockSignal;
+  }
+  box(4.53, .25, .52, bronze, 0, lip + upperGateHeight + upperGateTravel + .08, upperGateZ);
+  const dock = new T.Group();
+  dock.name = 'spillway-upper-dock';
+  scene.add(dock);
+  const dockFloor = { x: 0, y: lip, z: -21.24, w: 3.44, d: 1.91 };
+  box(dockFloor.w, .24, dockFloor.d, 0x5d6f62, 0, lip - .12, dockFloor.z, dock);
+  for (const x of [-1.61, 1.61]) box(.13, .045, 1.88, bronze, x, lip + .026, dockFloor.z, dock);
+  const dockSupport = collider(0, lip - .12, dockFloor.z, dockFloor.w, .24, dockFloor.d);
+
+  function solidWall(w, h, d, x, y, z) {
+    box(w, h, d, stone, x, y, z);
+    collider(x, y, z, w, h, d);
+  }
+  function placeUpperGrate(y) {
+    upperGrate.position.y = y;
+    upperBarrier.setTranslation({ x: 0, y: y + upperGateHeight / 2, z: upperGateZ });
+  }
+  function setDock(open) {
+    if (dock.visible === open) return;
+    dock.visible = open;
+    dockSupport.setEnabled(open);
+    dockSignal.color.setHex(open ? jade : 0xeead61);
+  }
+  setDock(false);
+
+  const takeoffLamp = pedestal({ x: -9.52, y: 0, z: -16.52 }, 0xf1b574);
+  takeoffLamp.name = 'spillway-takeoff-lamp';
+  const takeoffMark = new T.MeshBasicMaterial({ color: 0xe5a75c });
+  for (const [x, z, length, direction] of [
+    [-5.54, -15.3, .68, 0], [-5.54, -16.28, .55, 0],
+    [-6.52, -16.80, .6, Math.PI / 2], [-7.45, -16.80, .6, Math.PI / 2],
+    [-8.42, -17.24, .60, 0],
+  ]) {
+    const arrow = new T.Mesh(new T.ConeGeometry(.26, length, 3), takeoffMark);
+    arrow.rotation.order = 'YXZ';
+    arrow.rotation.set(-Math.PI / 2, direction, 0);
+    arrow.scale.set(1, 1, .12);
+    arrow.position.set(x, .055, z);
+    scene.add(arrow);
+  }
+
   const stones = [
-    [-8.7, 1.0, -18.91, 2.56, 1.82], [-9.15, 2.15, -20.86, 2.54, 1.82],
+    [-8.7, 1.0, -18.91, 2.76, 2.04], [-9.15, 2.15, -20.86, 2.54, 1.82],
     [-9.0, 3.28, -22.81, 2.40, 1.82], [-7.73, 4.40, -24.7, 2.22, 1.87],
   ].map(([x, y, z, w, d]) => {
     const support = collider(x, y - .14, z, w, .28, d);
@@ -213,6 +270,8 @@ export function createSpillway({ T, R, scene, world, box, mesh, floor, collider,
     intake.reset();
     galleryRelay.reset();
     placeCabin();
+    placeUpperGrate(lip);
+    setDock(false);
     setStairs(false);
     gate.position.y = gateY;
     obstruction.setTranslation({ x: 0, y: gateY + 1.84, z: gateZ });
@@ -256,7 +315,7 @@ export function createSpillway({ T, R, scene, world, box, mesh, floor, collider,
       if (!onRail(kai) || !intake.opened) grip = false;
       if (stairs && kai && kai.y >= lip - .16 && Math.abs(kai.x) < 6.6 && kai.z < -21 && kai.z > -30.14) kaiUp = true;
       stairsTime = Math.max(0, stairsTime - dt);
-      const requested = brake ? mark : grip ? T.MathUtils.clamp((-kai.z - 4) / 13, 0, 1) : 0;
+      const requested = brake ? mark : grip ? T.MathUtils.clamp((-kai.z - 4) / 13, 0, .82) : 0;
       progress = moveLift(T.MathUtils, progress, requested, brake ? 11 : 3.15, dt);
     } else if (peer?.slot === 0) {
       if (Number.isFinite(peer.spillProgress)) observedProgress = T.MathUtils.clamp(peer.spillProgress, 0, 1);
@@ -270,6 +329,8 @@ export function createSpillway({ T, R, scene, world, box, mesh, floor, collider,
       progress = moveLift(T.MathUtils, progress, brake ? mark : observedProgress, 13, dt);
     }
     placeCabin();
+    placeUpperGrate(T.MathUtils.damp(upperGrate.position.y, lip + (brake ? upperGateTravel : 0), 8, dt));
+    setDock(brake);
     if (wasRiding) carry(liftTop(progress) - liftTop(previous), liftZ(progress) - liftZ(previous));
     if (waitingRider) {
       other.y += liftTop(progress) - liftTop(previous);
@@ -282,6 +343,9 @@ export function createSpillway({ T, R, scene, world, box, mesh, floor, collider,
     weightLamp.material.emissive.setHex(atStop ? jade : 0xf1b574);
     cabinPlate.material.color.setHex(atStop ? jade : 0xb8995b);
     setStairs(stairsTime > 0);
+    const stairColor = stairsVisible ? jade : 0xe5a75c;
+    takeoffLamp.material.color.setHex(stairColor);
+    takeoffMark.color.setHex(stairColor);
     for (const step of stones) if (stairsVisible) step.surface.material.emissiveIntensity = stairsTime > 6 ? .67 : .38 + .35 * Math.sin(time * 14);
 
     const underGate = person => person && Math.abs(person.y - gateY) < 1.2 &&
@@ -342,9 +406,12 @@ export function createSpillway({ T, R, scene, world, box, mesh, floor, collider,
         : { hint: 'Попроси Кая снова поднять затвор, чтобы закрепить его.', power: 'Фиксатор' };
       return { hint: 'Спустись из галереи. Когда Кай поднимет затвор, пройди к фиксатору за ним.', power: 'Магия' };
     }
-    if (stairsTime > 0 && role === 0) return { hint: 'Прыгай по ступеням слева от шахты. Осталось ' + Math.ceil(stairsTime) + ' с.', power: 'Рывок' };
+    if (stairsTime > 0 && role === 0) {
+      const next = pos.x < -7.15 ? 'Прыгай от фонаря по бирюзовым ступеням.' : 'Иди по бирюзовым стрелкам к фонарю на левом выступе.';
+      return { hint: next + ' Осталось ' + Math.ceil(stairsTime) + ' с.', power: 'Рывок' };
+    }
     if (brake) {
-      if (role === 0) return { hint: 'Люми остановила подъёмник. Она создаст ступени слева от тебя.', power: 'Рывок' };
+      if (role === 0) return { hint: 'Иди к янтарному фонарю слева в конце рельсов. Люми создаст там ступени.', power: 'Рывок' };
       return at(pos, rune) ? { hint: 'Создай ступени для Кая. Если время истечёт, активируй руну снова.', power: 'Ступени' }
         : { hint: 'Сойди с подъёмника на верхнюю площадку и найди руну справа.', power: 'Магия' };
     }
@@ -352,7 +419,8 @@ export function createSpillway({ T, R, scene, world, box, mesh, floor, collider,
       if (onRail(pos)) return { hint: grip ? 'Веди противовес вдоль рельсов. Люми скажет, когда остановиться.' : 'Включи магнит на рельсах после того, как Люми встанет на подъёмник.', power: grip ? 'Отпустить' : 'Магнит' };
       return { hint: 'Путь Кая слева вдоль медных рельсов. Подъёмник Люми в центре.', power: 'Рывок' };
     }
-    if (onDeck(pos, progress)) return { hint: atMark(progress) ? 'Отметки совпали. Зафиксируй подъёмник.' : (solo ? 'Смени героя на Кая, чтобы подвинуть противовес.' : 'Подскажи Каю, когда площадка сравняется с бирюзовой отметкой.'), power: 'Стоп' };
+    if (onDeck(pos, progress)) return { hint: atMark(progress) ? 'Отметки совпали. Нажми «Стоп», чтобы открыть верхнюю решётку.' : (solo ? 'Смени героя на Кая, чтобы подвинуть противовес.' : 'Подскажи Каю, когда площадка сравняется с бирюзовой отметкой.'), power: 'Стоп' };
+    if (pos.y >= lip - .2 && pos.z < upperGateZ) return { hint: 'Подъёмник не зафиксирован. Нажми ↺ или R, чтобы вернуться к контрольной точке.', power: 'Магия' };
     return { hint: 'Встань на подъёмник в центре. Кай направит его по рельсу.', power: 'Магия' };
   }
 
@@ -364,8 +432,10 @@ export function createSpillway({ T, R, scene, world, box, mesh, floor, collider,
     groundHeight(pos) {
       const surfaces = stairsVisible ? [...checkpoints, ...stones] : checkpoints;
       const deck = onDeck(pos, progress, .19) ? liftTop(progress) : null;
-      return deck ?? surfaces.find(point => Math.abs(pos.x - point.x) < point.w / 2 &&
-        Math.abs(pos.z - point.z) < point.d / 2 && Math.abs(pos.y - point.y) < .12)?.y;
+      const covers = point => Math.abs(pos.x - point.x) < point.w / 2 &&
+        Math.abs(pos.z - point.z) < point.d / 2 && Math.abs(pos.y - point.y) < .12;
+      if (brake && covers(dockFloor)) return lip;
+      return deck ?? surfaces.find(covers)?.y;
     },
     state: context => ({ spillProgress: progress, spillBrake: brake, spillBrakeCall: brakeCall,
       spillStairs: stairs, spillStairCall: stairCall, spillStairsTime: stairsTime, spillKaiUp: kaiUp,
@@ -377,6 +447,7 @@ export function createSpillway({ T, R, scene, world, box, mesh, floor, collider,
       time += dt;
       waterfall.children.forEach((stream, index) => { stream.material.opacity = .15 + .33 * (Math.sin(time * 3.4 + index * .85) * .5 + .5); });
       for (const beacon of beacons) beacon.rotation.y += dt * .7;
+      takeoffLamp.rotation.y += dt * (stairsVisible ? 2.2 : .7);
     },
   };
 }
