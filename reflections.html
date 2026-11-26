@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Two Worlds — Забытый механизм</title>
-  <link rel="stylesheet" href="./game.css?v=movement1">
+  <link rel="stylesheet" href="./game.css?v=spillway3">
 </head>
 <body>
   <main id="menu">
@@ -29,7 +29,7 @@
             <button class="cancel-room" id="cancel-room" hidden>Отмена</button>
           </div>
         </details>
-        <a class="scene-switch" href="./?v=movement1">Открыть «Водосброс»</a>
+        <a class="scene-switch" href="./?v=spillway3">Открыть «Водосброс»</a>
       </div>
       <p id="msg" role="status"></p>
     </section>
@@ -59,7 +59,7 @@
     </div>
   </div>
   <script type="module">
-    import('./game.js?v=movement1').catch(error => {
+    import('./game.js?v=spillway3').catch(error => {
       document.getElementById('msg').textContent = 'Ошибка загрузки: ' + error.message;
     });
   </script>

@@ -1,11 +1,12 @@
+import { buildSpillwayRoute } from './spillway-route.js?v=spillway3';
 import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js';
 
 const lip = 5.05, mark = .75, liftStart = -7.19, liftTravel = 16;
 const bronze = 0xba8252, stone = 0x63736a, jade = 0x65d8bd;
 const rune = { x: 2.3, y: lip, z: -24 };
-const winch = { x: -3.9, y: lip, z: -26.8 };
-const catchPoint = { x: -.9, y: lip, z: -34.1 };
-const exitZ = -36.3;
+const gateY = 2.65, gateZ = -51.1, exitZ = -56.9;
+const winch = { x: -3.35, y: gateY, z: -48.65 };
+const catchPoint = { x: -.9, y: gateY, z: -54.45 };
 const asset = name => new URL(`./assets/spillway/${name}`, import.meta.url).href;
 const liftTop = progress => lip * progress / mark;
 const liftZ = progress => liftStart - liftTravel * progress;
@@ -15,16 +16,19 @@ const onRail = person => person && Math.abs(person.y) < .65 && person.x >= -7.0 
   person.x <= -4.15 && person.z < -3.25 && person.z > -17.8;
 const onDeck = (person, progress, clearance = .22) => person && Math.abs(person.x) < 1.67 &&
   Math.abs(person.z - liftZ(progress)) < 1.18 && Math.abs(person.y - liftTop(progress)) < clearance;
+const moveLift = (math, previous, next, damping, dt) => previous +
+  math.clamp(math.damp(previous, next, damping, dt) - previous, -dt * .78, dt * .78);
 const atMark = progress => Math.abs(progress - mark) <= .048;
 
 export function createSpillway({ T, R, scene, world, box, mesh, floor, collider, sound }) {
-  const start = floor(0, 0, 0, 14, 12, stone);
+  const route = buildSpillwayRoute({ T, scene, box, mesh, floor, collider, sound, lip, at });
+  const { start, intake, galleryRelay } = route;
+  floor(0, 0, 0, 14, 12, stone);
   const rail = floor(-5.55, 0, -11.9, 2.8, 12.03, stone);
   const launch = floor(-8.4, 0, -16.38, 3.13, 2.86, stone);
   const landing = floor(0, lip, -25.25, 13.1, 9.8, stone);
-  const exit = floor(0, lip, -34.1, 4.3, 8.0, stone);
-  exit.safeZ = -34.0;
-  const checkpoints = [start, rail, launch, landing, exit];
+  const courtyard = { x: 0, y: 0, z: .4, w: 14, d: 11.2, safeZ: 2.7 };
+  const checkpoints = [...route.floors, courtyard, rail, launch, landing];
 
   const texture = new T.TextureLoader().load(asset('stone.jpg'));
   texture.colorSpace = T.SRGBColorSpace;
@@ -45,6 +49,7 @@ export function createSpillway({ T, R, scene, world, box, mesh, floor, collider,
     scene.add(overlay);
   }
 
+  const cameraObstacles = [];
   const loader = new GLTFLoader();
   const bounds = new T.Box3(), size = new T.Vector3(), center = new T.Vector3();
   function decorate(model, point, height, name) {
@@ -57,18 +62,21 @@ export function createSpillway({ T, R, scene, world, box, mesh, floor, collider,
     prop.position.set(point.x - center.x * scale, point.y - bounds.min.y * scale, point.z - center.z * scale);
     prop.traverse(part => { if (part.isMesh) part.castShadow = part.receiveShadow = true; });
     scene.add(prop);
+    prop.updateMatrixWorld(true);
+    if (name === 'spillway-model-arch') cameraObstacles.push(prop);
   }
   loader.load(asset('wall-pillar.glb'), ({ scene: model }) => {
     for (const [x, y, z] of [[-2.6, 0, -5.15], [2.6, 0, -5.15], [-5.95, lip, -29.2], [5.95, lip, -29.2]]) {
       decorate(model, { x, y, z }, 2.95, 'spillway-model-pillar');
-      collider(x, y + 1.5, z, .75, 3.0, .75);
+      const scale = 2.95 / size.y;
+      collider(x, y + 1.475, z, size.x * scale, 2.95, size.z * scale);
     }
   }, undefined, error => console.warn('Spillway pillar failed to load', error));
   loader.load(asset('wall-doorway.glb'), ({ scene: model }) => {
-    decorate(model, { x: 0, y: lip, z: -38.2 }, 5.8, 'spillway-model-arch');
+    decorate(model, { x: 0, y: gateY, z: -58.9 }, 4.05, 'spillway-model-arch');
   }, undefined, error => console.warn('Spillway arch failed to load', error));
 
-  const water = new T.Mesh(new T.PlaneGeometry(58, 88), new T.MeshStandardMaterial({ color: 0x24665f, roughness: .51 }));
+  const water = new T.Mesh(new T.PlaneGeometry(78, 114), new T.MeshStandardMaterial({ color: 0x24665f, roughness: .51 }));
   water.position.set(0, -8.3, -18);
   water.rotation.x = -Math.PI / 2;
   scene.add(water);
@@ -86,7 +94,7 @@ export function createSpillway({ T, R, scene, world, box, mesh, floor, collider,
   for (let ridge = 0; ridge < 11; ridge++) {
     const side = ridge % 2 === 0 ? 1 : -1;
     const column = mesh(rock, ridge % 3 ? 0x62776c : 0x4d665f,
-      side * (12.5 + ridge % 4 * 1.1), -3 + ridge % 3 * 1.2, -5 - ridge * 3.9, scene, false);
+      side * (side > 0 ? 23.5 + ridge % 4 : 17 + ridge % 4), -3 + ridge % 3 * 1.2, -5 - ridge * 3.9, scene, false);
     column.scale.set(3.4 + ridge % 2, 9 + ridge % 4 * 2, 5.2);
     column.rotation.set(.1, ridge * 1.4, .19 * side);
   }
@@ -137,19 +145,19 @@ export function createSpillway({ T, R, scene, world, box, mesh, floor, collider,
     return { x, y, z, w, d, support, surface };
   });
   for (const side of [-1, 1]) {
-    box(4.46, 4.62, .82, stone, side * 4.22, lip + 2.31, -30.13);
-    collider(side * 4.22, lip + 2.31, -30.13, 4.46, 4.62, .82);
-    box(1.12, 4.35, 8.26, stone, side * 2.64, lip + 2.175, -34.06);
-    collider(side * 2.64, lip + 2.175, -34.06, 1.12, 4.35, 8.26);
+    box(4.46, 4.62, .82, stone, side * 4.22, gateY + 2.31, gateZ);
+    collider(side * 4.22, gateY + 2.31, gateZ, 4.46, 4.62, .82);
+    box(1.12, 4.35, 8.26, stone, side * 2.64, gateY + 2.175, -54.8);
+    collider(side * 2.64, gateY + 2.175, -54.8, 1.12, 4.35, 8.26);
   }
-  box(4.1, .64, .62, bronze, 0, lip + 4.35, -30.13);
+  box(4.1, .64, .62, bronze, 0, gateY + 4.35, gateZ);
   const gate = new T.Group();
-  gate.position.set(0, lip, -30.13);
+  gate.position.set(0, gateY, gateZ);
   scene.add(gate);
   for (let bar = -4; bar <= 4; bar++) box(.125, 3.68, .24, bronze, bar * .43, 1.84, 0, gate);
   for (const y of [.48, 2.65]) box(3.72, .20, .27, stone, 0, y, 0, gate);
-  const obstruction = collider(0, lip + 1.84, -30.13, 3.72, 3.68, .34);
-  const portal = mesh(new T.TorusGeometry(1.4, .19, 8, 32), bronze, 0, lip + 1.45, exitZ);
+  const obstruction = collider(0, gateY + 1.84, gateZ, 3.72, 3.68, .34);
+  const portal = mesh(new T.TorusGeometry(1.4, .19, 8, 32), bronze, 0, gateY + 1.45, exitZ);
   const gateLight = new T.MeshBasicMaterial({ color: jade, side: T.DoubleSide, transparent: true, opacity: .09 });
   const lightDisk = new T.Mesh(new T.CircleGeometry(1.22, 28), gateLight);
   lightDisk.position.copy(portal.position);
@@ -157,21 +165,26 @@ export function createSpillway({ T, R, scene, world, box, mesh, floor, collider,
 
   let progress = 0, observedProgress = 0, grip = false, brake = false, brakeCall = 0, handledBrake = 0;
   let stairs = false, raisingGate = false, remoteGate = false, gateCaught = false, gateHeight = 0, time = 0;
-  let stairsVisible = false, gateBlocked = true;
+  let stairsVisible = false, stairsTime = 0, stairCall = 0, handledStair = 0;
+  let kaiUp = false, lampActive = false, gateAudible = false, latchRequested = false;
 
   function reset() {
     progress = observedProgress = brakeCall = handledBrake = gateHeight = 0;
     grip = brake = stairs = raisingGate = remoteGate = gateCaught = false;
+    stairsTime = stairCall = handledStair = 0;
+    kaiUp = lampActive = gateAudible = latchRequested = false;
+    intake.reset();
+    galleryRelay.reset();
     placeCabin();
     setStairs(false);
-    gate.position.y = lip;
-    obstruction.setEnabled(true);
-    gateBlocked = true;
+    gate.position.y = gateY;
+    obstruction.setTranslation({ x: 0, y: gateY + 1.84, z: gateZ });
   }
   function placeCabin() {
     const y = liftTop(progress), z = liftZ(progress);
     cabin.position.set(0, y, z);
-    cabinBody.setNextKinematicTranslation({ x: 0, y: y - .2, z });
+    cabinBody.setTranslation({ x: 0, y: y - .2, z }, true);
+    world.propagateModifiedBodyPositionsToColliders();
   }
   function setStairs(visible) {
     if (visible === stairsVisible) return;
@@ -184,10 +197,12 @@ export function createSpillway({ T, R, scene, world, box, mesh, floor, collider,
 
   function update(dt, context) {
     const { role, pos, other, solo, peer, grounded, carry } = context;
+    intake.update(dt, context);
+    if (kaiUp) galleryRelay.update(dt, context);
     const authoritative = solo || role === 0;
     const kai = role === 0 ? pos : other;
     const previous = progress;
-    const wasRiding = grounded && onDeck(pos, previous);
+    const wasRiding = (grounded || context.vertical <= 0) && onDeck(pos, previous, .14);
     const waitingRider = solo && onDeck(other, previous);
     if (authoritative) {
       if (peer?.slot === 1) {
@@ -195,48 +210,63 @@ export function createSpillway({ T, R, scene, world, box, mesh, floor, collider,
           handledBrake = peer.spillBrakeCall;
           if (Math.abs(progress - mark) < .075 && onDeck(peer, progress, .55)) brake = true;
         }
-        if (brake && peer.spillStairs === true) stairs = true;
-        if (stairs && peer.spillCaught === true) gateCaught = true;
+        if (brake && Number.isSafeInteger(peer.spillStairCall) && peer.spillStairCall > handledStair) {
+          handledStair = peer.spillStairCall;
+          if (at(other, rune, 2.3)) { stairs = true; stairsTime = 33; }
+        }
+        if (galleryRelay.opened && gateHeight >= 2.28 && peer.spillLatch === true && at(other, catchPoint, 2.3)) gateCaught = true;
       }
-      if (!onRail(kai)) grip = false;
+      if (!onRail(kai) || !intake.opened) grip = false;
+      if (stairs && kai && kai.y >= lip - .16 && Math.abs(kai.x) < 6.6 && kai.z < -21 && kai.z > -30.14) kaiUp = true;
+      stairsTime = Math.max(0, stairsTime - dt);
       const requested = brake ? mark : grip ? T.MathUtils.clamp((-kai.z - 4) / 13, 0, 1) : 0;
-      progress = T.MathUtils.damp(progress, requested, brake ? 11 : 3.15, dt);
+      progress = moveLift(T.MathUtils, progress, requested, brake ? 11 : 3.15, dt);
     } else if (peer?.slot === 0) {
       if (Number.isFinite(peer.spillProgress)) observedProgress = T.MathUtils.clamp(peer.spillProgress, 0, 1);
       brake ||= peer.spillBrake === true;
       remoteGate = peer.spillGate === true;
-      progress = T.MathUtils.damp(progress, brake ? mark : observedProgress, 13, dt);
+      stairs = peer.spillStairs === true;
+      kaiUp ||= peer.spillKaiUp === true;
+      stairsTime = Number.isFinite(peer.spillStairsTime) ? Math.max(0, peer.spillStairsTime) : 0;
+      gateCaught ||= peer.spillCaught === true;
+      if (!at(pos, catchPoint)) latchRequested = false;
+      progress = moveLift(T.MathUtils, progress, brake ? mark : observedProgress, 13, dt);
     }
+    placeCabin();
     if (wasRiding) carry(liftTop(progress) - liftTop(previous), liftZ(progress) - liftZ(previous));
     if (waitingRider) {
       other.y += liftTop(progress) - liftTop(previous);
       other.z += liftZ(progress) - liftZ(previous);
     }
-    placeCabin();
     const railZ = grip && onRail(kai) ? T.MathUtils.clamp(kai.z, -17, -4) : -4 - 13 * progress;
     weight.position.z = T.MathUtils.damp(weight.position.z, railZ, 8, dt);
-    cabinPlate.material.color.setHex(atMark(progress) || brake ? jade : 0xb8995b);
-    setStairs(stairs);
+    const atStop = atMark(progress) || brake;
+    if (atStop && !lampActive) sound(560, .20, 'sine', .11);
+    lampActive = atStop;
+    cabinPlate.material.color.setHex(atStop ? jade : 0xb8995b);
+    setStairs(stairsTime > 0);
+    for (const step of stones) if (stairsVisible) step.surface.material.emissiveIntensity = stairsTime > 6 ? .67 : .38 + .35 * Math.sin(time * 14);
 
-    const underGate = person => person && Math.abs(person.y - lip) < 1.2 &&
-      Math.abs(person.x) < 1.8 && Math.abs(person.z + 30.13) < .66;
+    const underGate = person => person && Math.abs(person.y - gateY) < 1.2 &&
+      Math.abs(person.x) < 1.8 && Math.abs(person.z - gateZ) < .83;
     const gateOpen = gateCaught || (authoritative ? raisingGate && at(kai, winch) : remoteGate);
     const holdDoor = gateHeight > 2.65 && (underGate(pos) || underGate(other));
     const desiredHeight = gateOpen || holdDoor ? 3.85 : 0;
     gateHeight = T.MathUtils.damp(gateHeight, desiredHeight, 8.4, dt);
-    gate.position.y = lip + gateHeight;
-    const blockPassage = gateHeight < 2.35;
-    if (blockPassage !== gateBlocked) {
-      obstruction.setEnabled(blockPassage);
-      gateBlocked = blockPassage;
-    }
+    gate.position.y = gateY + gateHeight;
+    obstruction.setTranslation({ x: 0, y: gate.position.y + 1.84, z: gateZ });
+    if (gateOpen && !gateAudible) sound(151, .42, 'triangle', .13);
+    gateAudible = gateOpen;
     gateLight.opacity = gateCaught ? .61 : .09;
   }
 
-  function interact({ pos, role, solo, grounded }) {
+  function interact(context) {
+    const { pos, role, solo, grounded } = context;
+    if (!intake.opened) return intake.interact(context);
+    if (kaiUp && !galleryRelay.opened) return galleryRelay.interact(context);
     if (role === 0) {
       if (!brake && onRail(pos)) { grip = !grip; return 1; }
-      if (stairs && !gateCaught && at(pos, winch)) { raisingGate = !raisingGate; return 1; }
+      if (galleryRelay.opened && !gateCaught && at(pos, winch)) { raisingGate = !raisingGate; return 1; }
     }
     if (role === 1) {
       if (!brake && grounded && onDeck(pos, progress)) {
@@ -245,10 +275,15 @@ export function createSpillway({ T, R, scene, world, box, mesh, floor, collider,
         else brakeCall++;
         return 2;
       }
-      if (brake && !stairs && at(pos, rune)) { stairs = true; return 2; }
-      if (stairs && !gateCaught && at(pos, catchPoint)) {
+      if (brake && at(pos, rune)) {
+        stairCall++;
+        if (solo) { stairs = true; stairsTime = 33; }
+        return 2;
+      }
+      if (galleryRelay.opened && !gateCaught && at(pos, catchPoint)) {
         if (gateHeight < 2.35) return 0;
-        gateCaught = true;
+        if (solo) gateCaught = true;
+        else latchRequested = true;
         return 2;
       }
     }
@@ -258,20 +293,22 @@ export function createSpillway({ T, R, scene, world, box, mesh, floor, collider,
   function status({ pos, role, solo, won }) {
     if (won) return { hint: 'Оба героя у выхода. Водосброс открыт!', power: 'Способность' };
     if (gateCaught) return { hint: 'Затвор закреплён. Соберитесь у портала.', power: role === 0 ? 'Рывок' : 'Магия' };
-    if (stairs && pos.y >= lip - .7) {
+    if (!intake.opened) return intake.status({ pos, role });
+    if (kaiUp && !galleryRelay.opened) return galleryRelay.status({ pos, role });
+    if (galleryRelay.opened) {
       if (role === 0) return at(pos, winch) ? {
         hint: raisingGate ? 'Удерживай затвор, пока Люми не закрепит его за проходом.' : 'Магнит поднимет затвор. Оставайся у механизма, пока Люми проходит.',
         power: raisingGate ? 'Отпустить' : 'Поднять',
-      } : { hint: 'У левой стены на верхней площадке есть привод затвора.', power: 'Рывок' };
+      } : { hint: 'Спустись из галереи. У левой стены перед затвором есть привод.', power: 'Рывок' };
       if (at(pos, catchPoint)) return gateHeight >= 2.35
         ? { hint: 'Закрепи затвор, чтобы Кай мог пройти.', power: 'Фиксатор' }
         : { hint: 'Попроси Кая снова поднять затвор, чтобы закрепить его.', power: 'Фиксатор' };
-      return { hint: 'Подожди, пока Кай поднимет затвор, и найди фиксатор за ним.', power: 'Магия' };
+      return { hint: 'Спустись из галереи. Когда Кай поднимет затвор, пройди к фиксатору за ним.', power: 'Магия' };
     }
-    if (stairs) return { hint: 'Ступени появились слева от шахты. Поднимись к затвору.', power: role === 0 ? 'Рывок' : 'Магия' };
+    if (stairsTime > 0 && role === 0) return { hint: 'Прыгай по ступеням слева от шахты. Осталось ' + Math.ceil(stairsTime) + ' с.', power: 'Рывок' };
     if (brake) {
       if (role === 0) return { hint: 'Люми остановила подъёмник. Она создаст ступени слева от тебя.', power: 'Рывок' };
-      return at(pos, rune) ? { hint: 'Руна создаст ступени для Кая.', power: 'Ступени' }
+      return at(pos, rune) ? { hint: 'Создай ступени для Кая. Если время истечёт, активируй руну снова.', power: 'Ступени' }
         : { hint: 'Сойди с подъёмника на верхнюю площадку и найди руну справа.', power: 'Магия' };
     }
     if (role === 0) {
@@ -283,19 +320,22 @@ export function createSpillway({ T, R, scene, world, box, mesh, floor, collider,
   }
 
   return {
-    start, checkpoints, update, reset, interact, status,
+    start, checkpoints, update, reset, interact, status, cameraObstacles,
     canDash: ({ role, pos }) => role === 0 && !onRail(pos),
-    checkpoint: point => point.y < lip || brake,
+    checkpoint: point => point === route.exit ? gateCaught : point === route.gateBase ? galleryRelay.opened : point.y === lip ? brake : point !== rail && point !== launch || intake.opened,
+    supportsRider(pos) { return onDeck(pos, progress, .085) && pos.y > liftTop(progress) - .03; },
     groundHeight(pos) {
-      const surfaces = stairs ? [...checkpoints, ...stones] : checkpoints;
+      const surfaces = stairsVisible ? [...checkpoints, ...stones] : checkpoints;
       const deck = onDeck(pos, progress, .19) ? liftTop(progress) : null;
       return deck ?? surfaces.find(point => Math.abs(pos.x - point.x) < point.w / 2 &&
         Math.abs(pos.z - point.z) < point.d / 2 && Math.abs(pos.y - point.y) < .12)?.y;
     },
     state: context => ({ spillProgress: progress, spillBrake: brake, spillBrakeCall: brakeCall,
-      spillStairs: stairs, spillGate: raisingGate && at(context.role === 0 ? context.pos : context.other, winch), spillCaught: gateCaught }),
-    indicators: () => [['Подъёмник', brake], ['Ступени', stairs], ['Затвор', gateCaught]],
-    finish: ({ pos, other }) => gateCaught && [pos, other].every(person => at(person, { x: 0, y: lip, z: exitZ }, 1.78)),
+      spillStairs: stairs, spillStairCall: stairCall, spillStairsTime: stairsTime, spillKaiUp: kaiUp,
+      ...intake.state(), ...galleryRelay.state(), spillGate: raisingGate && at(context.role === 0 ? context.pos : context.other, winch), spillCaught: gateCaught, spillLatch: latchRequested }),
+    title: ({ pos }) => !intake.opened ? (pos.z > 5 ? 'Набережная' : 'Водозабор') : !brake ? 'Подъёмник' : !kaiUp ? 'Ступени' : !galleryRelay.opened ? 'Галерея' : 'Нижний затвор',
+    indicators: () => [['Решётка', intake.opened], ['Подъёмник', brake], ['Затвор', gateCaught]],
+    finish: ({ pos, other }) => gateCaught && [pos, other].every(person => at(person, { x: 0, y: gateY, z: exitZ }, 1.78)),
     animate(dt) {
       time += dt;
       waterfall.children.forEach((stream, index) => { stream.material.opacity = .15 + .33 * (Math.sin(time * 3.4 + index * .85) * .5 + .5); });

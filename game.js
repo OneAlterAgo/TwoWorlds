@@ -2,12 +2,12 @@ import R from 'https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.17.3/+es
 import * as T from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
 import { buildTempleArt, templeTexture } from './temple-art.js';
 import { createOpticalCourt } from './optics.js';
-import { moveAvatar } from './avatar-motion.js';
+import { moveAvatar } from './avatar-motion.js?v=spillway3';
 import { createRoomSocket } from './rooms.js?v=rooms2';
 
 await R.init();
 const isSpillway = document.body.dataset.trial === 'spillway';
-const $=id=>document.getElementById(id),socket=createRoomSocket(isSpillway ? 'spillway' : 'reflections'),scene=new T.Scene();
+const $=id=>document.getElementById(id),socket=createRoomSocket(isSpillway ? 'spillway3' : 'reflections'),scene=new T.Scene();
 scene.background=new T.Color(0xa3b9a7);scene.fog=new T.FogExp2(0xa3b9a7,.021);
 const camera=new T.PerspectiveCamera(62,innerWidth/innerHeight,.15,160),renderer=new T.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.03;document.body.prepend(renderer.domElement);scene.add(new T.HemisphereLight(0xcceadb,0x384751,1.52));const sun=new T.DirectionalLight(0xffd5a1,2.8);sun.position.set(-17,24,6);scene.add(sun,sun.target);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);Object.assign(sun.shadow.camera,{left:-18,right:18,top:18,bottom:-18,near:1,far:65});sun.shadow.bias=-.0005;sun.shadow.normalBias=.055;
 const mats=new Map();function mat(c){if(!mats.has(c))mats.set(c,new T.MeshStandardMaterial({color:c,flatShading:true,roughness:.85}));return mats.get(c)}function mesh(g,c,x,y,z,parent=scene,shadow=true){const m=new T.Mesh(g,mat(c));m.position.set(x,y,z);m.castShadow=shadow;m.receiveShadow=shadow;parent.add(m);return m}function box(w,h,d,c,x,y,z,parent=scene){return mesh(new T.BoxGeometry(w,h,d),c,x,y,z,parent)}
@@ -260,7 +260,7 @@ function createBridgeTrial() {
 }
 
 const trial = isSpillway
-  ? (await import('./spillway.js')).createSpillway({ T, R, scene, world, box, mesh, floor, collider, sound })
+  ? (await import('./spillway.js?v=spillway3')).createSpillway({ T, R, scene, world, box, mesh, floor, collider, sound })
   : createBridgeTrial();
 const { start, checkpoints } = trial;
 
@@ -274,7 +274,7 @@ function updateInterface(context) {
     status: solo ? 'Одиночная игра' : 'Кооператив',
     hud: hint,
     power,
-    'section-title': isSpillway ? 'Водосброс' : trial.title(),
+    'section-title': trial.title(context),
   };
   for (const [name, value] of Object.entries(labels)) {
     const element = $(name);
@@ -308,21 +308,32 @@ function avatar(index) {
   const hide = lumi ? 0x275352 : 0x543d35;
   const metal = lumi ? 0x759a8f : 0x9d613a;
   const skin = lumi ? 0xd39d7c : 0xc78759;
-  const limbs = new T.CapsuleGeometry(.085, .26, 2, 6);
-  const boots = new T.BoxGeometry(.24, .18, .36);
+  const limbs = new T.CapsuleGeometry(.088, .26, 2, 7);
+  const boots = new T.BoxGeometry(lumi ? .178 : .225, .16, lumi ? .284 : .33);
+  const jointShell = new T.IcosahedronGeometry(.106, 1);
 
-  mesh(new T.CylinderGeometry(lumi ? .245 : .32, .19, .54, 7), fabric, 0, 1.03, 0, torso);
-  mesh(new T.IcosahedronGeometry(.225, 1), skin, 0, 1.49, .042, torso);
+  const jacket = mesh(new T.CylinderGeometry(lumi ? .248 : .326, lumi ? .232 : .237, .57, 8), fabric, 0, 1.015, 0, torso);
+  jacket.scale.z = .76;
+  mesh(new T.CylinderGeometry(.267, .225, .21, 8), hide, 0, .755, 0, torso).scale.z = .81;
+  mesh(new T.CylinderGeometry(.129, .142, .16, 7), hide, 0, 1.305, 0, torso);
+  box(.36, .21, .12, lumi ? 0x328d87 : metal, 0, 1.09, .144, torso);
+  mesh(new T.IcosahedronGeometry(.225, 1), skin, 0, 1.485, .057, torso).scale.set(.96, 1.10, .89);
   const hood = mesh(new T.IcosahedronGeometry(lumi ? .275 : .243, 1), lumi ? hide : metal,
     0, 1.57, lumi ? -.045 : -.062, torso);
   hood.scale.set(1.13, 1.06, .92);
   box(.35, .10, .31, hide, 0, .74, 0, torso);
   box(.12, .10, .07, trim, 0, .75, .17, torso);
   for (const side of [-1, 1]) {
-    box(.045, .022, .025, 0x26353a, side * .073, 1.51, .246, torso);
+    box(.055, .026, .024, 0x26353a, side * .074, 1.52, .241, torso);
+    box(.062, .017, .021, lumi ? 0x23413e : 0x57352a, side * .074, 1.557, .24, torso).rotation.z = side * .11;
   }
 
+  mesh(new T.OctahedronGeometry(.054), skin, 0, 1.475, .244, torso).scale.set(.65, .94, .72);
+  box(.072, .012, .024, lumi ? 0x824d45 : 0x76483a, 0, 1.419, .231, torso);
   if (lumi) {
+    const ponytail = mesh(new T.IcosahedronGeometry(.16, 0), 0x163a38, 0, 1.46, -.222, torso);
+    ponytail.scale.set(.66, 1.30, .78);
+    box(.178, .043, .094, trim, 0, 1.48, -.262, torso);
     const panels = [
       [-.24, 1.23, -.14, .24, 1.23, -.14, .36, .57, -.24],
       [-.24, 1.23, -.14, .36, .57, -.24, -.33, .62, -.28],
@@ -349,12 +360,16 @@ function avatar(index) {
       mesh(new T.CylinderGeometry(.071, .071, .34, 7), metal, side * .17, .98, -.40, torso);
       box(.054, .13, .035, trim, side * .17, .97, -.471, torso);
     }
-    box(.25, .06, .1, trim, 0, 1.60, .16, torso);
+    box(.29, .063, .10, hide, 0, 1.613, .197, torso);
+    for (const side of [-1, 1]) box(.104, .055, .049, trim, side * .083, 1.615, .244, torso);
+    const harness = box(.075, .44, .048, hide, -.15, 1.025, .204, torso);
+    harness.rotation.z = -.30;
   }
 
   const legs = [], arms = [];
+  let abilityFx;
   function joint(parent, x, y, z) {
-    const node = new T.Group();
+    const node = new T.Bone();
     node.position.set(x, y, z);
     parent.add(node);
     return node;
@@ -363,22 +378,37 @@ function avatar(index) {
     const hip = joint(model, side * .14, .77, 0);
     const knee = joint(hip, 0, -.34, 0);
     const foot = joint(knee, 0, -.34, 0);
-    mesh(limbs, 0x323f41, 0, -.15, 0, hip).scale.set(1.2, .75, 1.16);
-    mesh(limbs, hide, 0, -.14, 0, knee).scale.set(1.04, .75, 1);
+    mesh(limbs, lumi ? 0x254d50 : 0x323f41, 0, -.155, 0, hip).scale.set(lumi ? 1.05 : 1.28, .92, 1.16);
+    mesh(jointShell, hide, 0, 0, 0, knee).scale.set(.93, 1.0, 1.0);
+    mesh(limbs, hide, 0, -.17, 0, knee).scale.set(1.04, .9, 1);
     mesh(boots, hide, 0, -.02, .076, foot);
     box(.14, .085, .13, metal, 0, -.09, .065, knee);
     legs.push({ hip, knee, foot });
 
     const shoulder = joint(torso, side * (lumi ? .29 : .36), 1.23, 0);
     const elbow = joint(shoulder, 0, -.23, 0);
-    mesh(limbs, fabric, 0, -.10, 0, shoulder).scale.y = .61;
+    mesh(limbs, fabric, 0, -.10, 0, shoulder).scale.y = .67;
+    mesh(jointShell, fabric, 0, 0, 0, elbow).scale.set(.83, .88, .87);
     mesh(new T.IcosahedronGeometry(lumi ? .126 : .167, 0), metal, 0, -.03, 0, shoulder);
     mesh(limbs, fabric, 0, -.115, 0, elbow).scale.y = .59;
     mesh(new T.CylinderGeometry(.084, .08, .10, 7), trim, 0, -.174, 0, elbow);
     mesh(new T.IcosahedronGeometry(.078, 0), skin, 0, -.235, 0, elbow);
+    if (side === -1) {
+      if (!lumi) {
+        mesh(new T.CylinderGeometry(.112, .148, .199, 7), metal, 0, -.139, 0, elbow);
+        box(.203, .123, .084, trim, 0, -.143, .09, elbow);
+        box(.173, .115, .158, hide, 0, -.236, .012, elbow);
+      } else {
+        mesh(new T.OctahedronGeometry(.113), trim, 0, -.18, .092, elbow).scale.z = .33;
+      }
+      abilityFx = new T.Mesh(new T.TorusGeometry(lumi ? .30 : .208, .024, 5, 18), new T.MeshBasicMaterial({ color: trim, transparent: true, depthWrite: false }));
+      abilityFx.position.set(0, -.29, .03);
+      abilityFx.visible = false;
+      elbow.add(abilityFx);
+    }
     arms.push({ shoulder, elbow });
   }
-  group.userData = { model, top, cape, legs, arms, lumi, motion: { gait: 0, air: false, landing: 0, action: 0, gesture: 0 } };
+  group.userData = { model, top, cape, legs, arms, lumi, abilityFx, motion: { gait: 0, air: false, landing: 0, action: 0, gesture: 0 } };
   return group;
 }
 
@@ -392,6 +422,8 @@ const previousPosition = new T.Vector3(), renderPosition = new T.Vector3();
 const parked = [new T.Vector3(), new T.Vector3()];
 const parkedFace = [0, 0], playerCheckpoints = [start, start];
 const keys = new Set();
+let jumpTime = 0, coyoteTime = 0, cameraDistance = 6.5;
+const propCameraRay = new T.Raycaster();
 let jumpReq = false, powerReq = false, swapReq = false, returnReq = false;
 
 function teleportPlayer() {
@@ -405,9 +437,12 @@ function enter(mode, role = 0) {
   slot = role;
   solo = mode === 'SOLO';
   state = {};
-  parked[0].set(-1, .04, 2);
-  parked[1].set(1, .04, 2);
-  parkedFace.fill(0);
+  parked[0].set(isSpillway ? start.x : -1, .04, isSpillway ? start.z : 2);
+  parked[1].set(isSpillway ? start.x : 1, .04, isSpillway ? start.z + 1.2 : 2);
+  yaw = face = isSpillway ? Math.PI / 2 : 0;
+  pitch = .38;
+  cameraDistance = 6.5;
+  parkedFace.fill(face);
   playerCheckpoints.fill(start);
   pos.copy(parked[slot]);
   teleportPlayer();
@@ -421,7 +456,7 @@ function enter(mode, role = 0) {
   }
   won = false;
   jumps = dash = cd = 0;
-  physicsTime = speed = 0;
+  physicsTime = speed = jumpTime = coyoteTime = 0;
   ground = true;
   $('menu').style.display = 'none';
   $('controls').style.display = 'block';
@@ -469,7 +504,7 @@ function frameContext(peer) {
     body.setTranslation({ x: pos.x, y: pos.y + .84, z: pos.z }, true);
     world.propagateModifiedBodyPositionsToColliders();
   }
-  return { pos, role: slot, solo, peer, grounded: ground, other: solo && isSpillway ? parked[1 - slot] : peer, won, carry };
+  return { pos, role: slot, solo, peer, grounded: ground, vertical: vel.y, other: solo && isSpillway ? parked[1 - slot] : peer, won, carry };
 }
 
 function switchHero() {
@@ -486,16 +521,89 @@ function switchHero() {
     checkpoint = playerCheckpoints[slot];
     teleportPlayer();
     vel.set(0, 0, 0);
-    jumps = dash = cd = 0;
+    jumps = dash = cd = jumpTime = coyoteTime = 0;
   }
 }
 
-const pad=$('pad');function stick(e){const r=pad.getBoundingClientRect(),x=e.clientX-r.left-r.width/2,z=e.clientY-r.top-r.height/2,l=Math.max(r.width*.36,Math.hypot(x,z));dx=x/l;dz=z/l;$('knob').style.transform=`translate(${dx*35}px,${dz*35}px)`}pad.onpointerdown=e=>{pad.setPointerCapture(e.pointerId);stick(e)};pad.onpointermove=e=>{if(pad.hasPointerCapture(e.pointerId))stick(e)};pad.onpointerup=pad.onpointercancel=()=>{dx=dz=0;$('knob').style.transform=''};onkeydown=e=>{if(!keys.has(e.code)){if(e.code==='Space')jumpReq=true;if(e.code==='KeyE')powerReq=true;if(e.code==='KeyQ')swapReq=true;if(e.code==='KeyR'&&isSpillway)returnReq=true}keys.add(e.code)};onkeyup=e=>keys.delete(e.code);$('jump').onpointerdown=()=>jumpReq=true;$('power').onpointerdown=()=>powerReq=true;$('swap').onpointerdown=()=>swapReq=true;if(isSpillway)$('reset-position').onclick=()=>{returnReq=true;};const cv=renderer.domElement;cv.onpointerdown=e=>{if(!me)return;look=e.pointerId;lx=e.clientX;ly=e.clientY;cv.setPointerCapture(look)};cv.onpointermove=e=>{if(e.pointerId!==look)return;yaw-=(e.clientX-lx)*.006;pitch=T.MathUtils.clamp(pitch+(e.clientY-ly)*.005,.1,.9);lx=e.clientX;ly=e.clientY};cv.onpointerup=cv.onpointercancel=()=>look=null;$('full').onclick=async()=>{try{await document.documentElement.requestFullscreen?.();await screen.orientation?.lock?.('landscape')}catch{}};
+const pad = $('pad'), canvas = renderer.domElement;
+let stickPointer = null;
+function stick(event) {
+  const bounds = pad.getBoundingClientRect();
+  const x = event.clientX - bounds.left - bounds.width / 2;
+  const z = event.clientY - bounds.top - bounds.height / 2;
+  const distance = Math.hypot(x, z);
+  const strength = T.MathUtils.clamp((distance / (bounds.width * .36) - .13) / .87, 0, 1);
+  dx = distance ? x / distance * strength : 0;
+  dz = distance ? z / distance * strength : 0;
+  $('knob').style.transform = 'translate(' + dx * 35 + 'px,' + dz * 35 + 'px)';
+}
+function stopStick(event) {
+  if (event && event.pointerId !== stickPointer) return;
+  stickPointer = null;
+  dx = dz = 0;
+  $('knob').style.transform = '';
+}
+pad.onpointerdown = event => {
+  if (stickPointer !== null) return;
+  stickPointer = event.pointerId;
+  pad.setPointerCapture(stickPointer);
+  stick(event);
+};
+pad.onpointermove = event => { if (event.pointerId === stickPointer) stick(event); };
+pad.onpointerup = pad.onpointercancel = pad.onlostpointercapture = stopStick;
+onkeydown = event => {
+  if (event.target instanceof HTMLInputElement) return;
+  if (me && ['Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(event.code)) event.preventDefault();
+  if (!keys.has(event.code)) {
+    if (event.code === 'Space') jumpReq = true;
+    if (event.code === 'KeyE') powerReq = true;
+    if (event.code === 'KeyQ') swapReq = true;
+    if (event.code === 'KeyR' && isSpillway) returnReq = true;
+  }
+  keys.add(event.code);
+};
+onkeyup = event => keys.delete(event.code);
+window.addEventListener('blur', () => {
+  keys.clear();
+  stopStick();
+  look = null;
+  jumpTime = 0;
+  jumpReq = powerReq = swapReq = returnReq = false;
+});
+$('jump').onpointerdown = () => { jumpReq = true; };
+$('power').onpointerdown = () => { powerReq = true; };
+$('swap').onpointerdown = () => { swapReq = true; };
+if (isSpillway) $('reset-position').onclick = () => { returnReq = true; };
+canvas.onpointerdown = event => {
+  if (!me || look !== null) return;
+  look = event.pointerId;
+  lx = event.clientX;
+  ly = event.clientY;
+  canvas.setPointerCapture(look);
+};
+canvas.onpointermove = event => {
+  if (event.pointerId !== look) return;
+  yaw -= (event.clientX - lx) * .006;
+  pitch = T.MathUtils.clamp(pitch + (event.clientY - ly) * .005, .1, .9);
+  lx = event.clientX;
+  ly = event.clientY;
+};
+canvas.onpointerup = canvas.onpointercancel = canvas.onlostpointercapture = event => {
+  if (event.pointerId === look) look = null;
+};
+$('full').onclick = async () => {
+  try {
+    await document.documentElement.requestFullscreen?.();
+    await screen.orientation?.lock?.('landscape');
+  } catch {}
+};
 function respawn() {
-  pos.set(checkpoint.x, checkpoint.y + .1, checkpoint.safeZ ?? checkpoint.z);
+  pos.set(checkpoint.safeX ?? checkpoint.x, checkpoint.y + .1, checkpoint.safeZ ?? checkpoint.z);
   teleportPlayer();
   vel.set(0, 0, 0);
-  jumps = dash = 0;
+  jumps = dash = jumpTime = coyoteTime = 0;
+  jumpReq = false;
+  ground = false;
   speed = 0;
 }
 
@@ -529,14 +637,21 @@ function updatePhysics(dt, peer) {
   cd = Math.max(0, cd - dt);
   dash = Math.max(0, dash - dt);
 
-  if (jumpReq) {
-    if (ground || jumps < 2) {
+  jumpTime = jumpReq ? .13 : Math.max(0, jumpTime - dt);
+  jumpReq = false;
+  coyoteTime = ground ? .10 : Math.max(0, coyoteTime - dt);
+  const groundJump = jumps === 0 && coyoteTime > 0;
+  if (jumpTime > 0 && (groundJump || jumps < 2)) {
+    const ray = new R.Ray({ x: pos.x, y: pos.y + .08, z: pos.z }, { x: 0, y: -1, z: 0 });
+    const landing = !groundJump && vel.y < -4.8 &&
+      world.castRay(ray, .74, true, undefined, undefined, capsule, body);
+    if (!landing) {
       sound(420, .18, 'triangle');
-      vel.y = ground ? 8.8 : 8.2;
-      jumps++;
+      vel.y = groundJump ? 8.8 : 8.2;
+      jumps = groundJump ? 1 : 2;
+      jumpTime = coyoteTime = 0;
       ground = false;
     }
-    jumpReq = false;
   }
   if (powerReq) {
     const abilityContext = frameContext(peer);
@@ -554,9 +669,16 @@ function updatePhysics(dt, peer) {
     powerReq = false;
   }
 
-  const acceleration = 1 - Math.exp(-dt * (ground ? 15 : 7));
-  vel.x = T.MathUtils.lerp(vel.x, dash ? Math.sin(face) * 14 : mx * 6, acceleration);
-  vel.z = T.MathUtils.lerp(vel.z, dash ? Math.cos(face) * 14 : mz * 6, acceleration);
+  const targetX = dash ? Math.sin(face) * 14 : mx * 6;
+  const targetZ = dash ? Math.cos(face) * 14 : mz * 6;
+  const changeX = targetX - vel.x, changeZ = targetZ - vel.z;
+  const distance = Math.hypot(changeX, changeZ);
+  const steer = Math.hypot(mx, mz) > .01;
+  const reversing = targetX * vel.x + targetZ * vel.z < 0;
+  const rate = dash ? 85 : ground ? (!steer ? 68 : reversing ? 62 : 38) : steer ? 23 : 7;
+  const weight = distance ? Math.min(1, rate * dt / distance) : 0;
+  vel.x += changeX * weight;
+  vel.z += changeZ * weight;
   vel.y -= 22 * dt;
   controller.computeColliderMovement(capsule, { x: vel.x * dt, y: vel.y * dt, z: vel.z * dt });
   const movement = controller.computedMovement();
@@ -565,7 +687,7 @@ function updatePhysics(dt, peer) {
   pos.z += movement.z;
   // A rounded capsule can touch the corner of a higher step while still rising.
   const touchingGround = controller.computedGrounded();
-  ground = touchingGround && vel.y <= 0;
+  ground = vel.y <= 0 && (touchingGround || (isSpillway && trial.supportsRider(pos)));
   if (ground) {
     vel.y = 0;
     jumps = 0;
@@ -597,7 +719,9 @@ function renderPlayers(dt, peer) {
   moveAvatar(local, dt, phase, { face, speed, air: !ground, rise: vel.y, action: actionCount[slot] });
   other.visible = Boolean(peer) || (solo && isSpillway);
   if (peer) {
-    other.position.lerp(new T.Vector3(peer.x, peer.y, peer.z), 1 - Math.exp(-dt * 15));
+    const remote = new T.Vector3(peer.x, peer.y, peer.z);
+    if (other.position.distanceToSquared(remote) > 20) other.position.copy(remote);
+    else other.position.lerp(remote, 1 - Math.exp(-dt * 15));
     moveAvatar(other, dt, phase, {
       face: Number.isFinite(peer.face) ? peer.face : 0,
       speed: Number.isFinite(peer.speed) ? peer.speed : 0,
@@ -642,16 +766,41 @@ function tick(now) {
     }
     updateInterface(context);
     const { x, y, z } = renderPosition;
-    const target = new T.Vector3(x, y + 1.3, z);
-    const desired = new T.Vector3(x + Math.sin(yaw) * 6.5 * Math.cos(pitch),
-      y + 1.3 + 6.5 * Math.sin(pitch), z + Math.cos(yaw) * 6.5 * Math.cos(pitch));
-    const rayDir = desired.clone().sub(target);
-    const rayLength = rayDir.length();
-    rayDir.normalize();
-    const hit = world.castRay(new R.Ray(target, rayDir), rayLength, true, undefined, undefined, capsule, body);
-    if (hit) desired.copy(target).addScaledVector(rayDir, Math.max(.5, hit.timeOfImpact - .2));
-    camera.position.lerp(desired, 1 - Math.exp(-dt * 10));
+    const target = new T.Vector3(x, y + 1.23, z);
+    const direction = new T.Vector3(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch));
+    const shoulder = new T.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+    let clearance = 6.5;
+    for (const side of [-.23, 0, .23]) {
+      const from = target.clone().addScaledVector(shoulder, side);
+      const hit = world.castRay(new R.Ray(from, direction), clearance, true, undefined, undefined, capsule, body);
+      if (hit) clearance = Math.min(clearance, Math.max(.22, hit.timeOfImpact - .23));
+      if (trial.cameraObstacles?.length) {
+        propCameraRay.set(from, direction);
+        propCameraRay.far = clearance;
+        const [prop] = propCameraRay.intersectObjects(trial.cameraObstacles, true);
+        if (prop) clearance = Math.min(clearance, Math.max(.22, prop.distance - .23));
+      }
+    }
+    cameraDistance = Math.min(clearance, T.MathUtils.damp(cameraDistance, clearance, 5, dt));
+    camera.position.copy(target).addScaledVector(direction, cameraDistance);
+    const close = cameraDistance < 2.1;
+    let rise = 0;
+    if (cameraDistance < 1.3) {
+      const up = new R.Ray(camera.position, { x: 0, y: 1, z: 0 });
+      const ceiling = world.castRay(up, 1.28, true, undefined, undefined, capsule, body);
+      rise = 1.28 * (1 - T.MathUtils.smoothstep(cameraDistance, .35, 1.3));
+      if (ceiling) rise = Math.min(rise, Math.max(0, ceiling.timeOfImpact - .18));
+      camera.position.y += rise;
+    }
+    target.addScaledVector(direction, close ? -.65 : -.24);
+    target.y -= rise * .53;
     camera.lookAt(target);
+    avatars[slot].visible = cameraDistance > .58 || rise > .72;
+    const fov = T.MathUtils.damp(camera.fov, close ? 73 : 62, 9, dt);
+    if (Math.abs(camera.fov - fov) > .01) {
+      camera.fov = fov;
+      camera.updateProjectionMatrix();
+    }
     sun.position.set(x - 17, y + 24, z + 6);
     sun.target.position.copy(renderPosition);
     sun.target.updateMatrixWorld();

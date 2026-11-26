@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Two Worlds — Водосброс</title>
-  <link rel="stylesheet" href="./game.css?v=movement1">
+  <link rel="stylesheet" href="./game.css?v=spillway3">
 </head>
 <body data-trial="spillway">
   <main id="menu">
@@ -12,7 +12,7 @@
       <p class="chapter">Демонстрационная сцена</p>
       <h1 id="title">Two Worlds</h1>
       <h2>Водосброс</h2>
-      <p class="scene-description">Кай двигает подъёмник, Люми фиксирует его и создаёт ступени. В кооперативе у каждого свой герой.</p>
+      <p class="scene-description">Пройдите вдоль воды, поднимитесь в галерею и откройте затвор. Кай управляет механизмами, Люми активирует руны и создаёт ступени.</p>
       <div class="menu-actions">
         <button id="solo">Попробовать одному</button>
         <details id="coop-menu">
@@ -61,7 +61,7 @@
   </div>
   <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"}}</script>
   <script type="module">
-    import('./game.js?v=movement1').catch(error => {
+    import('./game.js?v=spillway3').catch(error => {
       document.getElementById('msg').textContent = 'Ошибка загрузки: ' + error.message;
     });
   </script>
